@@ -17,6 +17,7 @@ const PENDING_WORKFLOWS = path.join(ROOT, 'tools', 'github-workflows');
 const REPO = (JSON.parse(fs.readFileSync(PKG, 'utf8')).polar || {}).updateRepo || 'NeerBhardwaj1/polar-client';
 const [OWNER, NAME] = REPO.split('/');
 const WEB = `https://github.com/${REPO}`;
+const MY_NAME = 'Neer Bhardwaj';
 const FIRST_COMMIT = [
   'Polar Client',
   '',
@@ -110,20 +111,56 @@ function ensureRepo() {
   }
 }
 
-/** Commits need a name and email. GitHub's private "noreply" address keeps your real email out of the public history. */
+/**
+ * Commits in this repository are always signed as you, with GitHub's private "noreply" address, so your real email and
+ * any other Git identity saved on this PC stay out of the public history. Other repositories on the PC aren't affected.
+ */
+let myEmail = `${OWNER}@users.noreply.github.com`;
 async function ensureIdentity() {
-  if (!git(['config', 'user.name'], { quiet: true, allowFail: true }).out) git(['config', 'user.name', 'Neer Bhardwaj'], { quiet: true });
-  if (git(['config', 'user.email'], { quiet: true, allowFail: true }).out) return;
-  let email = `${OWNER}@users.noreply.github.com`;
   try {
     const res = await fetch(`https://api.github.com/users/${OWNER}`, { headers: { Accept: 'application/vnd.github+json' } });
     const user = await res.json();
-    if (user && user.id) email = `${user.id}+${OWNER}@users.noreply.github.com`;
+    if (user && user.id) myEmail = `${user.id}+${OWNER}@users.noreply.github.com`;
   } catch {
-    // offline: the older noreply form works too
+    // offline: use the address already set for this repository, or the older noreply form
+    const local = git(['config', '--local', 'user.email'], { quiet: true, allowFail: true }).out;
+    if (/@users\.noreply\.github\.com$/i.test(local)) myEmail = local;
   }
-  git(['config', 'user.email', email], { quiet: true });
-  say(`Commits are signed as Neer Bhardwaj <${email}> (GitHub's private address). Change it with: git config user.email you@example.com`);
+  const name = git(['config', '--local', 'user.name'], { quiet: true, allowFail: true }).out;
+  const email = git(['config', '--local', 'user.email'], { quiet: true, allowFail: true }).out;
+  if (name === MY_NAME && email === myEmail) return;
+  git(['config', '--local', 'user.name', MY_NAME], { quiet: true });
+  git(['config', '--local', 'user.email', myEmail], { quiet: true });
+  say(`Commits here are signed as ${MY_NAME} <${myEmail}> (GitHub's private address for ${OWNER}).`);
+}
+
+/**
+ * Commits signed as someone else (the Git identity saved on this PC before) are re-signed as you, so the next upload
+ * replaces them on GitHub. Only before the first release: after that, people's launchers point at those commits.
+ * Returns true when the history was rewritten (the upload then has to replace GitHub's copy).
+ */
+async function fixAuthors() {
+  if (!hasCommits()) return false;
+  const others = new Set();
+  for (const line of git(['log', '--format=%an <%ae>%n%cn <%ce>', branch()], { quiet: true }).out.split('\n')) {
+    if (line && !line.endsWith(`<${myEmail}>`) && !line.endsWith('<noreply@github.com>')) others.add(line);
+  }
+  if (!others.size) return false;
+  if (git(['tag', '-l', 'v*'], { quiet: true }).out) {
+    say(`\nSome commits are signed as ${[...others].join(', ')}; they can't be changed any more because a release was made from them.`);
+    return false;
+  }
+  if (git(['status', '--porcelain'], { quiet: true }).out) return false;
+  say(`\nEarlier commits are signed as ${[...others].join(', ')}.`);
+  if (!/^y/i.test(await ask(`Re-sign them as ${MY_NAME} and replace them on GitHub? (y/n)`, 'y'))) return false;
+  const r = git(['rebase', '-q', '--root', '--exec', 'git commit --amend --no-edit --reset-author --no-verify -q'], { allowFail: true });
+  if (!r.ok) {
+    git(['rebase', '--abort'], { quiet: true, allowFail: true });
+    say('Could not re-sign them; nothing was changed.');
+    return false;
+  }
+  say(`Re-signed every commit as ${MY_NAME}.`);
+  return true;
 }
 
 /** New workflow files wait in tools/github-workflows (the folder Claude can write to) until they're moved into .github. */
@@ -166,10 +203,11 @@ function forgetLogin(user) {
 }
 
 /** Pushes; when the GitHub repo doesn't exist yet, opens the page to create it and tries again. */
-async function push(refs) {
+async function push(refs, replace = false) {
   for (let attempt = 0; attempt < 3; attempt++) {
     say(`\nUploading to ${WEB} ... (the first time, a window asks you to sign in to GitHub)`);
-    const r = git(['push', '-u', 'origin', ...refs], { allowFail: true });
+    // replacing re-signed commits: --force-with-lease only overwrites GitHub's copy if nobody else changed it meanwhile
+    const r = git(['push', '-u', ...(replace ? ['--force-with-lease'] : []), 'origin', ...refs], { allowFail: true });
     if (r.ok) return;
     if (/not found|does not exist/i.test(r.err)) {
       const url = `https://github.com/new?owner=${OWNER}&name=${NAME}&visibility=public&description=${encodeURIComponent('Polar Client: a Minecraft client for 26.3, 1.21.11, 1.21.10, 1.16.5 and 1.8.9, and its launcher')}`;
@@ -221,7 +259,8 @@ async function publish(message) {
   } else if (!first) {
     say('Nothing new to upload; checking GitHub has everything...');
   }
-  await push([branch()]);
+  const replace = await fixAuthors();
+  await push([branch()], replace);
   say(`\nDone. ${WEB}`);
   say(`Every upload also runs the "build" check on GitHub: ${WEB}/actions`);
   if (first) {
@@ -288,8 +327,9 @@ async function release(wanted) {
   git(['add', '-A'], { quiet: true });
   checkIgnored();
   if (stagedChanges()) git(['commit', '-q', '-m', `Polar Client ${v}`]);
+  const replace = await fixAuthors();
   git(['tag', '-a', `v${v}`, '-m', notes], { quiet: true });
-  await push([branch(), `v${v}`]);
+  await push([branch(), `v${v}`], replace);
   say(`\nReleased v${v} to GitHub. GitHub Actions is building the mod and the installers now (about 20-30 minutes):`);
   say(`  ${WEB}/actions`);
   say(`When it's done the installers are on ${WEB}/releases and every launcher older than ${v} offers "Update now" at its next start.`);
