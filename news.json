@@ -1,6 +1,15 @@
 {
   "items": [
     {
+      "id": "release-1.0.0",
+      "date": "2026-11-02",
+      "tag": "Update",
+      "title": "Polar Client 1.0.0",
+      "body": "First Launch of the Polar Client.",
+      "link": "https://github.com/NeerBhardwaj1/polar-client/releases/tag/v1.0.0",
+      "linkLabel": "Release notes"
+    },
+    {
       "id": "2026-11-02-browse-packs",
       "date": "2026-11-02",
       "tag": "Update",
