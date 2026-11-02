@@ -147,9 +147,22 @@ function checkIgnored() {
   }
 }
 
+/**
+ * The remote names the account (https://NeerBhardwaj1@github.com/...), so Git asks for that account's login instead of
+ * using whichever GitHub login Windows saved first.
+ */
+const REMOTE = `https://${OWNER}@github.com/${REPO}.git`;
 function ensureRemote() {
-  if (git(['remote', 'get-url', 'origin'], { quiet: true, allowFail: true }).ok) return;
-  git(['remote', 'add', 'origin', `${WEB}.git`], { quiet: true });
+  const url = git(['remote', 'get-url', 'origin'], { quiet: true, allowFail: true });
+  if (!url.ok) git(['remote', 'add', 'origin', REMOTE], { quiet: true });
+  else if (/^https:\/\/github\.com\//i.test(url.out)) git(['remote', 'set-url', 'origin', REMOTE], { quiet: true });
+}
+
+/** Removes the GitHub login Windows saved for another account, so the next upload asks you to sign in again. */
+function forgetLogin(user) {
+  const input = `protocol=https\nhost=github.com\nusername=${user}\n\n`;
+  spawnSync('git', ['credential', 'reject'], { cwd: ROOT, input, encoding: 'utf8' });
+  spawnSync('git', ['credential-manager', 'github', 'logout', user], { cwd: ROOT, encoding: 'utf8' });
 }
 
 /** Pushes; when the GitHub repo doesn't exist yet, opens the page to create it and tries again. */
@@ -171,7 +184,19 @@ async function push(refs) {
         `If the repo is new, delete it on GitHub (Settings > Danger zone) and run this again to recreate it empty;\n` +
         `otherwise run "git pull --rebase origin ${branch()}" first.`);
     }
-    if (/authentication|403|permission/i.test(r.err)) fail(`GitHub refused the sign-in. Make sure you're signed in as ${OWNER}, then run this again.`);
+    const other = /denied to ([\w-]+)/i.exec(r.err);
+    if (other && other[1].toLowerCase() !== OWNER.toLowerCase()) {
+      say(`\nGit used a GitHub login saved on this PC for another account (${other[1]}), not ${OWNER}.`);
+      if (/^y/i.test(await ask(`Forget the saved login for ${other[1]} on this PC, so you can sign in as ${OWNER}? (y/n)`, 'y'))) {
+        forgetLogin(other[1]);
+        say(`Forgotten. When the sign-in window opens, choose "Sign in with your browser" and allow it as ${OWNER}.`);
+        continue;
+      }
+      fail(`Nothing uploaded. To fix it yourself: Control Panel > Credential Manager > Windows Credentials, remove the "git:https://github.com" entries, then run this again.`);
+    }
+    if (/authentication|403|permission/i.test(r.err)) {
+      fail(`GitHub refused the upload. Check that the repository ${REPO} exists and that you signed in as ${OWNER}, then run this again.`);
+    }
     fail('The upload failed (see above).');
   }
   fail('Still no repository on GitHub. Create it, then run this again.');
