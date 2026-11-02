@@ -1,0 +1,19 @@
+{
+  "providers": [
+    {
+      "type": "ttf",
+      "file": "polarclient:poppins_bold.ttf",
+      "size": 15.4,
+      "oversample": 4.0,
+      "shift": [
+        0,
+        -3.883
+      ]
+    },
+    {
+      "type": "legacy_unicode",
+      "sizes": "minecraft:font/glyph_sizes.bin",
+      "template": "minecraft:font/unicode_page_%s.png"
+    }
+  ]
+}

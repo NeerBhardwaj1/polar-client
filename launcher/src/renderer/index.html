@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; img-src 'self' data: https://mc-heads.net https://cdn.modrinth.com https://raw.githubusercontent.com; style-src 'self'; script-src 'self'; font-src 'self'; connect-src 'none'" />
+  <title>Polar Client</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- icon sprites (generic line icons) -->
+  <svg class="sprites" aria-hidden="true">
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M3.5 11 12 4l8.5 7M6 9.5V20h4.5v-5.5h3V20H18V9.5"/></symbol>
+    <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.6 2.4 3.8 5.2 3.8 8.5S14.6 18.1 12 20.5M12 3.5C9.4 5.9 8.2 8.7 8.2 12s1.2 6.1 3.8 8.5"/></symbol>
+    <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 3.5 3.5 8 12 12.5 20.5 8 12 3.5zM3.5 12 12 16.5 20.5 12M3.5 16 12 20.5 20.5 16"/></symbol>
+    <symbol id="i-shirt" viewBox="0 0 24 24"><path d="M8.5 4 4 6.5l1.8 4 2.2-1V20h8V9.5l2.2 1 1.8-4L15.5 4c-.6 1.5-1.9 2.4-3.5 2.4S9.1 5.5 8.5 4z"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.6"/><path d="M12 3v2.2M12 18.8V21M3 12h2.2M18.8 12H21M5.6 5.6l1.6 1.6M16.8 16.8l1.6 1.6M5.6 18.4l1.6-1.6M16.8 7.2l1.6-1.6"/></symbol>
+    <symbol id="i-terminal" viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="15" rx="2.5"/><path d="M7 10l3 2.5L7 15M12.5 15H17"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6.5 16.5V11a5.5 5.5 0 0 1 11 0v5.5l1.5 2h-14zM10 20.5h4"/></symbol>
+    <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 13.5a7.6 7.6 0 0 0 0-3l2-1.6-2-3.4-2.4 1a7.4 7.4 0 0 0-2.6-1.5L14 2.5h-4l-.4 2.5A7.4 7.4 0 0 0 7 6.5l-2.4-1-2 3.4 2 1.6a7.6 7.6 0 0 0 0 3l-2 1.6 2 3.4 2.4-1a7.4 7.4 0 0 0 2.6 1.5l.4 2.5h4l.4-2.5a7.4 7.4 0 0 0 2.6-1.5l2.4 1 2-3.4z"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l10.5-6.5z"/></symbol>
+    <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="M9.5 6l6 6-6 6"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="M6 9.5l6 6 6-6"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4.5V15M7.5 10.5 12 15l4.5-4.5M5 19.5h14"/></symbol>
+    <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 19.5s-7-4.3-7-9.4A3.9 3.9 0 0 1 12 8a3.9 3.9 0 0 1 7 2.1c0 5.1-7 9.4-7 9.4z"/></symbol>
+    <symbol id="i-external" viewBox="0 0 24 24"><path d="M13.5 5H19v5.5M19 5l-8 8M17 13.5V19H5V7h5.5"/></symbol>
+    <symbol id="i-image" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M4 17l5-4.5 3.5 3 3-2.5 4.5 4"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8.5" y="8.5" width="11" height="11" rx="2"/><path d="M15.5 8.5V6a1.5 1.5 0 0 0-1.5-1.5H6A1.5 1.5 0 0 0 4.5 6v8A1.5 1.5 0 0 0 6 15.5h2.5"/></symbol>
+    <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 4 2.8 19.5h18.4zM12 10v4.5M12 17.2v.3"/></symbol>
+    <symbol id="i-left" viewBox="0 0 24 24"><path d="M14.5 6l-6 6 6 6"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M5 7h14M5 12h14M5 17h9"/></symbol>
+    <symbol id="i-cube" viewBox="0 0 24 24"><path d="M12 3.5 4 8v8l8 4.5 8-4.5V8zM4 8l8 4.5L20 8M12 12.5v8"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></symbol>
+    <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 3 5 13.5h6L10 21l8-10.5h-6z"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24"><path d="M5 19l1-4 9.5-9.5 3 3L9 18zM13.5 7.5l3 3"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M5 7h14M10 7V4.5h4V7M7 7l1 13h8l1-13"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M19 12a7 7 0 1 1-2.1-5M19 4v4h-4"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+    <symbol id="i-chat" viewBox="0 0 24 24"><path d="M5 5.5h14a1.5 1.5 0 0 1 1.5 1.5v9a1.5 1.5 0 0 1-1.5 1.5H10l-4.5 3.5V17.5H5A1.5 1.5 0 0 1 3.5 16V7A1.5 1.5 0 0 1 5 5.5z"/></symbol>
+    <symbol id="i-code" viewBox="0 0 24 24"><path d="M9 7l-5 5 5 5M15 7l5 5-5 5"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 15V4.5M7.5 9 12 4.5 16.5 9M5 15v4.5h14V15"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3.5 7V18a1.5 1.5 0 0 0 1.5 1.5h14a1.5 1.5 0 0 0 1.5-1.5V9a1.5 1.5 0 0 0-1.5-1.5h-7L10 5H5A1.5 1.5 0 0 0 3.5 6.5z"/></symbol>
+    <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6.5" y="6.5" width="11" height="11" rx="2"/></symbol>
+  </svg>
+
+  <div class="titlebar">
+    <div class="titlebar-brand"><img src="assets/mark-256.png" alt="" /> <span>Polar Client</span></div>
+    <div class="titlebar-drag"></div>
+    <div class="window-buttons">
+      <button class="win-btn" data-win="minimize" aria-label="Minimize"><svg viewBox="0 0 12 12"><path d="M2 6h8"/></svg></button>
+      <button class="win-btn" data-win="maximize" aria-label="Maximize"><svg viewBox="0 0 12 12"><rect x="2.5" y="2.5" width="7" height="7" rx="1"/></svg></button>
+      <button class="win-btn close" data-win="close" aria-label="Close"><svg viewBox="0 0 12 12"><path d="M3 3l6 6M9 3l-6 6"/></svg></button>
+    </div>
+  </div>
+
+  <div class="app">
+    <nav class="sidebar">
+      <button class="nav-item active" data-page="home"><svg><use href="#i-home"/></svg><span>Home</span></button>
+      <button class="nav-item" data-page="servers"><svg><use href="#i-globe"/></svg><span>Servers</span></button>
+      <button class="nav-item" data-page="mods"><svg><use href="#i-layers"/></svg><span>Mods</span></button>
+      <button class="nav-item" data-page="browse"><svg><use href="#i-search"/></svg><span>Browse</span><span class="nav-badge" id="browseBadge" hidden></span></button>
+      <button class="nav-item" data-page="shots"><svg><use href="#i-image"/></svg><span>Screenshots</span></button>
+      <button class="nav-item" data-page="cosmetics"><svg><use href="#i-shirt"/></svg><span>Cosmetics</span></button>
+      <button class="nav-item" data-page="settings"><svg><use href="#i-sun"/></svg><span>Settings</span></button>
+      <button class="nav-item" data-page="console"><svg><use href="#i-terminal"/></svg><span>Console</span></button>
+      <div class="sidebar-spacer"></div>
+      <div class="sidebar-brand">
+        <img src="assets/mark-256.png" alt="" />
+        <img class="brand-word" src="assets/logo-text.webp" alt="Polar Client" />
+        <span class="brand-version" id="brandVersion">v1.0.0</span>
+      </div>
+    </nav>
+
+    <main class="content">
+      <!-- top-right actions, shown on every page -->
+      <div class="top-actions">
+        <button class="account-chip" id="accountChip">
+          <img id="accountAvatar" src="assets/mark-256.png" alt="" />
+          <span class="account-text"><span class="account-name" id="accountName">Sign in</span><span class="account-sub" id="accountSub">Add an account</span></span>
+          <svg class="chev"><use href="#i-down"/></svg>
+        </button>
+        <button class="square-btn" id="bellBtn" aria-label="Notifications"><svg><use href="#i-bell"/></svg><span class="badge" id="bellBadge" hidden>0</span></button>
+        <button class="square-btn" id="gearBtn" aria-label="Settings"><svg><use href="#i-gear"/></svg></button>
+
+        <div class="dropdown" id="accountMenu" hidden></div>
+        <div class="dropdown notifications" id="bellMenu" hidden>
+          <div class="dropdown-head"><span>Notifications</span><button class="link-btn" id="clearNotes">Clear</button></div>
+          <div id="noteList"></div>
+        </div>
+      </div>
+
+      <div class="update-banner" id="updateBanner" hidden>
+        <svg><use href="#i-download"/></svg>
+        <span id="updateText">A new version of Polar Client is ready.</span>
+        <button class="btn small primary" id="updateBtn">Update now</button>
+        <button class="icon-btn" id="updateLater" aria-label="Later">×</button>
+      </div>
+
+      <div class="pages">
+        <!-- HOME -->
+        <section class="page active" id="page-home">
+          <div class="hero" id="hero">
+            <div class="hero-layer sky"></div>
+            <div class="hero-layer aurora"></div>
+            <div class="hero-layer aurora two"></div>
+            <div class="hero-moon"></div>
+            <div class="hero-layer scene"></div>
+            <canvas class="hero-snow" id="snow"></canvas>
+            <div class="hero-shade"></div>
+            <div class="hero-inner">
+              <img class="hero-logo" src="assets/logo.webp" alt="Polar Client" />
+              <p class="tagline">Your Minecraft. Your way.</p>
+              <div class="chips">
+                <span class="chip"><span class="chip-ico grass"></span><span id="versionChip">Minecraft 26.3</span></span>
+                <span class="chip"><svg><use href="#i-layers"/></svg><span id="loaderChip">Fabric</span></span>
+                <span class="chip"><svg><use href="#i-cube"/></svg><span id="modCountChip">79 built-in mods</span></span>
+              </div>
+              <div class="hero-actions">
+                <button class="play-btn" id="playBtn">
+                  <span class="play-fill" id="playFill"></span>
+                  <svg class="play-ico"><use href="#i-play"/></svg>
+                  <span class="play-label" id="playLabel">PLAY MINECRAFT</span>
+                </button>
+                <button class="version-btn" id="versionBtn" aria-haspopup="listbox" title="Choose the Minecraft version">
+                  <span class="version-text"><small>VERSION</small><b id="versionLabel">26.3</b></span>
+                  <svg class="chev"><use href="#i-down"/></svg>
+                </button>
+                <button class="ghost-btn" id="quickJoinBtn"><svg><use href="#i-link"/></svg><span id="quickJoinLabel">Quick Join</span></button>
+              </div>
+            </div>
+            <button class="status-card" id="statusCard">
+              <span class="dot" id="statusDot"></span>
+              <span class="status-text"><b id="statusMain">Ready to play</b><span id="statusSub">Minecraft 26.3 · Fabric</span></span>
+              <svg class="chev"><use href="#i-chevron"/></svg>
+              <span class="status-bar"><span id="statusFill"></span></span>
+            </button>
+          </div>
+
+          <section class="panel" id="newsPanel" hidden>
+            <div class="panel-head"><h2>News</h2><button class="link-btn" id="allNews">All news</button></div>
+            <div class="news-grid" id="newsGrid"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head"><h2>Recent Servers</h2><button class="link-btn" data-goto="servers">All servers</button></div>
+            <div class="recent-grid" id="recentGrid"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head"><h2>Polar Features</h2></div>
+            <div class="feature-grid" id="featureGrid"></div>
+          </section>
+        </section>
+
+        <!-- SERVERS -->
+        <section class="page" id="page-servers">
+          <header class="page-head">
+            <div><h1>Servers</h1><p id="serversSub">Your Minecraft server list. Play joins the server as soon as the game opens.</p></div>
+            <div class="row-actions">
+              <button class="btn ghost" id="refreshServers"><svg><use href="#i-refresh"/></svg>Refresh</button>
+              <button class="btn primary" id="addServerBtn"><svg><use href="#i-plus"/></svg>Add Server</button>
+            </div>
+          </header>
+          <div class="server-list" id="serverList"></div>
+        </section>
+
+        <!-- MODS -->
+        <section class="page" id="page-mods">
+          <header class="page-head">
+            <div><h1>Mods</h1><p id="modsSub">Polar Client's own features are always installed. Press <kbd>Right Shift</kbd> in game to turn them on or off.</p></div>
+            <div class="row-actions"><button class="btn ghost" id="openModsFolder"><svg><use href="#i-folder"/></svg>Game folder</button></div>
+          </header>
+          <div class="notice" id="modsNotice" hidden><svg><use href="#i-layers"/></svg><span id="modsNoticeText"></span></div>
+          <div class="mod-cats" id="builtinList"></div>
+          <h2 class="section-title">Performance pack <span class="muted">· from Modrinth, updated automatically</span></h2>
+          <div class="mod-list" id="perfList"></div>
+          <h2 class="section-title">More mods <span class="muted">· popular mods by other people, installed where your version has a build</span></h2>
+          <div class="mod-list" id="extraList"></div>
+        </section>
+
+        <!-- BROWSE (Modrinth) -->
+        <section class="page" id="page-browse">
+          <header class="page-head">
+            <div><h1>Browse Modrinth</h1><p id="browseSub">Mods, resource packs and shaders from Modrinth for the version you play.</p></div>
+            <div class="row-actions">
+              <div class="seg" id="browseTabs"><button class="active" data-tab="discover">Discover</button><button data-tab="installed">Installed <span class="count" id="browseCount"></span></button></div>
+            </div>
+          </header>
+          <div id="browseDiscover">
+            <div class="seg kinds" id="browseKinds"><button class="active" data-kind="mod"><svg><use href="#i-cube"/></svg>Mods</button><button data-kind="resourcepack"><svg><use href="#i-image"/></svg>Resource packs</button><button data-kind="shader"><svg><use href="#i-sun"/></svg>Shaders</button></div>
+            <div class="browse-bar">
+              <label class="browse-search"><svg><use href="#i-search"/></svg><input type="text" id="browseQuery" placeholder="Search Modrinth mods" spellcheck="false" autocomplete="off" /></label>
+              <div class="browse-sort"><span>Sort</span><select id="browseSort">
+                <option value="relevance">Relevance</option><option value="downloads">Downloads</option><option value="follows">Followers</option><option value="newest">Newest</option><option value="updated">Recently updated</option>
+              </select></div>
+            </div>
+            <div class="browse-cats" id="browseCats"></div>
+            <div class="browse-status" id="browseStatus"></div>
+            <div class="browse-grid" id="browseResults"></div>
+            <div class="browse-more"><button class="btn ghost" id="browseMore" hidden>Load more</button></div>
+          </div>
+          <div id="browseInstalled" hidden></div>
+          <p class="browse-note">Everything comes from <a href="#" id="modrinthLink">modrinth.com</a> and goes into the selected version's own folder. Mods bring anything they need with them, resource packs are switched on for the next start, and shaders turn on Iris. Some servers don't allow every mod, so check a server's rules.</p>
+        </section>
+
+        <!-- SCREENSHOTS -->
+        <section class="page" id="page-shots">
+          <header class="page-head">
+            <div><h1>Screenshots</h1><p>Every screenshot you took in game (F2), newest first, from all versions.</p></div>
+            <div class="row-actions"><div class="seg" id="shotFilter"></div></div>
+          </header>
+          <div class="shot-grid" id="shotGrid"></div>
+        </section>
+
+        <!-- COSMETICS -->
+        <section class="page" id="page-cosmetics">
+          <header class="page-head">
+            <div><h1>Cosmetics</h1><p>Your skin and capes, saved to your Minecraft account so everyone sees them.</p></div>
+            <div class="row-actions"><button class="btn ghost" id="reloadProfile"><svg><use href="#i-refresh"/></svg>Reload</button></div>
+          </header>
+          <div class="cosmetics" id="cosmetics">
+            <div class="skin-card">
+              <canvas id="skinCanvas" width="240" height="360"></canvas>
+              <div class="seg" id="skinSide"><button class="active" data-side="front">Front</button><button data-side="back">Back</button></div>
+              <div class="skin-name" id="skinName">—</div>
+            </div>
+            <div class="cos-side">
+              <div class="setting-card">
+                <div class="setting-title">Skin</div>
+                <div class="seg" id="skinModel"><button class="active" data-model="classic">Classic arms</button><button data-model="slim">Slim arms</button></div>
+                <div class="row-actions">
+                  <button class="btn primary" id="uploadSkin"><svg><use href="#i-upload"/></svg>Upload skin…</button>
+                  <button class="btn ghost" id="resetSkin">Reset to default</button>
+                </div>
+                <div class="hint">A 64×64 PNG skin file. The arm style applies to the skin you upload.</div>
+              </div>
+              <div class="setting-card">
+                <div class="setting-title">Capes <span class="muted" id="capeCount"></span></div>
+                <div class="cape-grid" id="capeGrid"></div>
+              </div>
+            </div>
+          </div>
+          <div class="empty-state" id="cosmeticsEmpty" hidden></div>
+          <section class="panel skin-lib">
+            <div class="panel-head">
+              <h2>Skin library <span class="muted" id="skinLibCount"></span></h2>
+              <div class="row-actions">
+                <button class="btn ghost" id="saveCurrentSkin"><svg><use href="#i-download"/></svg>Save current skin</button>
+                <button class="btn ghost" id="addSkinFiles"><svg><use href="#i-plus"/></svg>Add skin files…</button>
+              </div>
+            </div>
+            <div class="skin-lib-grid" id="skinLibGrid"></div>
+          </section>
+        </section>
+
+        <!-- SETTINGS -->
+        <section class="page" id="page-settings">
+          <header class="page-head"><div><h1>Settings</h1><p>Saved automatically.</p></div></header>
+          <div class="settings-grid">
+            <div class="setting-card">
+              <div class="setting-title">Memory <span class="setting-value" id="memValue">4 GB</span></div>
+              <input type="range" id="memSlider" min="2" max="16" step="1" />
+              <div class="hint">4–6 GB is plenty for Polar Client with the performance pack.</div>
+            </div>
+            <div class="setting-card">
+              <div class="setting-title">Window</div>
+              <label class="toggle"><input type="checkbox" id="fullscreen" /><span></span>Start in fullscreen</label>
+              <label class="toggle"><input type="checkbox" id="customRes" /><span></span>Custom size</label>
+              <div class="inline-inputs"><input type="number" id="resW" min="640" /> <span class="muted">×</span> <input type="number" id="resH" min="360" /></div>
+            </div>
+            <div class="setting-card">
+              <div class="setting-title">Java</div>
+              <div class="inline-inputs">
+                <input type="text" id="javaPath" placeholder="Automatic (the right Java for each version)" spellcheck="false" />
+                <button class="btn ghost small" id="pickJava">Browse</button>
+              </div>
+              <div class="hint">Leave empty to let the launcher download the right Java for each version (8, 21 or 25). A custom Java is only used for the versions it can run.</div>
+              <input type="text" id="jvmArgs" placeholder="Extra JVM arguments" spellcheck="false" />
+            </div>
+            <div class="setting-card">
+              <div class="setting-title">Launcher</div>
+              <label class="toggle"><input type="checkbox" id="closeOnLaunch" /><span></span>Hide launcher while playing</label>
+              <label class="toggle"><input type="checkbox" id="discordStatus" /><span></span>Show what I'm playing on Discord</label>
+              <div class="hint" id="discordHint">Your Discord profile shows the version and the server you're on while the Discord app is open. Hide the server in game: Polar menu › Discord Status.</div>
+              <label class="toggle"><input type="checkbox" id="snowToggle" /><span></span>Snowfall on the home page</label>
+              <div class="row-actions">
+                <button class="btn ghost small" id="openGameFolder">Game folder</button>
+                <button class="btn ghost small" id="openLogs">Logs</button>
+                <button class="btn ghost small" id="manageAccounts">Accounts</button>
+              </div>
+              <div class="hint" id="aboutLine"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- CONSOLE -->
+        <section class="page" id="page-console">
+          <header class="page-head">
+            <div><h1>Console</h1><p>Game and launcher output.</p></div>
+            <div class="row-actions">
+              <button class="btn ghost small" id="copyLog">Copy</button>
+              <button class="btn ghost small" id="clearLog">Clear</button>
+              <button class="btn danger small" id="killGame" disabled><svg><use href="#i-stop"/></svg>Stop game</button>
+            </div>
+          </header>
+          <pre class="console" id="console"></pre>
+        </section>
+      </div>
+
+      <footer class="footer">
+        <span>POLAR CLIENT <b id="footVersion">1.0.0</b></span><i></i>
+        <span id="footGame">MINECRAFT 26.3</span><i></i>
+        <span id="footLoader">FABRIC</span>
+        <span class="foot-spacer"></span>
+        <span class="services"><span class="dot" id="servicesDot"></span><span id="servicesLabel">CHECKING SERVICES</span></span>
+        <div class="foot-links" id="footLinks"></div>
+      </footer>
+    </main>
+  </div>
+
+  <!-- SCREENSHOT VIEWER -->
+  <div class="modal-backdrop viewer" id="shotModal" hidden>
+    <div class="viewer-box">
+      <button class="viewer-nav prev" id="shotPrev" aria-label="Previous"><svg><use href="#i-left"/></svg></button>
+      <img id="shotImg" alt="" />
+      <button class="viewer-nav next" id="shotNext" aria-label="Next"><svg><use href="#i-chevron"/></svg></button>
+      <div class="viewer-bar">
+        <span id="shotInfo"></span>
+        <div class="row-actions">
+          <button class="btn small ghost" id="shotCopy"><svg><use href="#i-copy"/></svg>Copy</button>
+          <button class="btn small ghost" id="shotReveal"><svg><use href="#i-folder"/></svg>Show in folder</button>
+          <button class="btn small danger" id="shotDelete"><svg><use href="#i-trash"/></svg>Delete</button>
+          <button class="btn small ghost" data-close>Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CRASH HELPER -->
+  <div class="modal-backdrop" id="newsModal" hidden>
+    <div class="modal news">
+      <div class="modal-head"><h2>News</h2><button class="icon-btn" data-close aria-label="Close">×</button></div>
+      <div class="news-list" id="newsList"></div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="crashModal" hidden>
+    <div class="modal crash">
+      <div class="modal-head"><h2><svg class="warn"><use href="#i-warn"/></svg><span id="crashTitle">Minecraft closed unexpectedly</span></h2><button class="icon-btn" data-close aria-label="Close">×</button></div>
+      <p class="crash-detail" id="crashDetail"></p>
+      <div class="crash-fix"><b>What to do</b><span id="crashFix"></span></div>
+      <p class="hint" id="crashMeta"></p>
+      <div class="row-actions end">
+        <button class="btn ghost" id="crashCopy"><svg><use href="#i-copy"/></svg>Copy log</button>
+        <button class="btn ghost" id="crashReport"><svg><use href="#i-folder"/></svg>Open crash report</button>
+        <button class="btn primary" id="crashAction">Open Mods</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACCOUNTS MODAL -->
+  <div class="modal-backdrop" id="accountsModal" hidden>
+    <div class="modal">
+      <div class="modal-head"><h2>Accounts</h2><button class="icon-btn" data-close aria-label="Close">×</button></div>
+      <div class="account-list" id="accountList"></div>
+      <button class="btn primary wide" id="addAccount">
+        <svg viewBox="0 0 21 21" class="ms-logo"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg>
+        Add Microsoft account
+      </button>
+      <p class="hint center">You need a Microsoft account that owns Minecraft: Java Edition.</p>
+      <div class="divider"><span>Offline profile</span></div>
+      <form class="offline-form" id="offlineForm" autocomplete="off">
+        <input type="text" id="offlineName" maxlength="16" placeholder="Username" spellcheck="false" />
+        <button class="btn ghost" id="addOffline" type="submit">Add</button>
+      </form>
+      <p class="hint center" id="offlineHint"></p>
+    </div>
+  </div>
+
+  <!-- SERVER EDIT MODAL -->
+  <div class="modal-backdrop" id="serverModal" hidden>
+    <form class="modal" id="serverForm" autocomplete="off">
+      <div class="modal-head"><h2 id="serverModalTitle">Add Server</h2><button class="icon-btn" type="button" data-close aria-label="Close">×</button></div>
+      <label class="field"><span>Server name</span><input type="text" id="serverName" maxlength="64" placeholder="Minecraft Server" spellcheck="false" /></label>
+      <label class="field"><span>Address</span><input type="text" id="serverIp" maxlength="255" placeholder="play.example.net" spellcheck="false" /></label>
+      <div class="row-actions end"><button class="btn ghost" type="button" data-close>Cancel</button><button class="btn primary" type="submit" id="serverSave">Save</button></div>
+    </form>
+  </div>
+
+  <!-- QUICK JOIN MODAL -->
+  <div class="modal-backdrop" id="quickModal" hidden>
+    <form class="modal" id="quickForm" autocomplete="off">
+      <div class="modal-head"><h2>Quick Join</h2><button class="icon-btn" type="button" data-close aria-label="Close">×</button></div>
+      <p class="hint">Start Minecraft and join a server straight away.</p>
+      <label class="field"><span>Server address</span><input type="text" id="quickAddress" placeholder="play.example.net" spellcheck="false" /></label>
+      <div class="quick-picks" id="quickPicks"></div>
+      <label class="toggle"><input type="checkbox" id="quickAlways" /><span></span>Always join this server when I press Play</label>
+      <div class="row-actions end"><button class="btn ghost" type="button" data-close>Cancel</button><button class="btn primary" type="submit"><svg><use href="#i-play"/></svg>Play &amp; join</button></div>
+    </form>
+  </div>
+
+  <!-- FEATURE MODAL -->
+  <div class="modal-backdrop" id="featureModal" hidden>
+    <div class="modal wide">
+      <img class="feature-shot" id="featureShot" src="" alt="" />
+      <div class="modal-head"><h2 id="featureTitle"></h2><button class="icon-btn" data-close aria-label="Close">×</button></div>
+      <p class="feature-text" id="featureText"></p>
+      <ul class="feature-points" id="featurePoints"></ul>
+      <div class="row-actions end"><button class="btn ghost" data-goto="mods" data-close>See all mods</button><button class="btn primary" data-close>Got it</button></div>
+    </div>
+  </div>
+
+  <!-- version dropdown (fixed, so the hero doesn't clip it) -->
+  <div class="dropdown version-menu" id="versionMenu" role="listbox" hidden></div>
+
+  <div class="toasts" id="toasts"></div>
+  <script src="app.js"></script>
+</body>
+</html>

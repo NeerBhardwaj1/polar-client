@@ -1,0 +1,14 @@
+{
+  "providers": [
+    {
+      "type": "ttf",
+      "file": "polarclient:symbols.ttf",
+      "size": 31.2,
+      "oversample": 4.0,
+      "shift": [
+        0,
+        -2.6
+      ]
+    }
+  ]
+}

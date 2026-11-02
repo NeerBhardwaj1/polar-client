@@ -1,0 +1,473 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Polar background renderer</title></head>
+<body style="margin:0;background:#000">
+<canvas id="c"></canvas>
+<script>
+// Offline renderer for the Polar Client main-menu background.
+// Builds a Minecraft-style voxel world (frozen lake, snowy banks, spruce forest, lit villages, mountains)
+// and ray-traces it with WebGL2. Modes: 'scene' (terrain layer, sky transparent, lake semi-transparent),
+// 'sky' (sky gradient, clouds, faint stars, blocky moon), 'aurora' (horizontally tileable aurora strip).
+'use strict';
+const SX = 512, SY = 128, SZ = 512, WATER = 20;
+const M = { AIR: 0, STONE: 1, DIRT: 2, SNOW: 3, ICE: 4, PACKED: 5, LOG: 6, LEAVES: 7, PLANKS: 8, COBBLE: 9, WINDOW: 10, LANTERN: 11, ROOF: 12, SNOWGRASS: 13, FENCE: 14 };
+
+// ---------------------------------------------------------------- noise
+function hash2(x, z) { let h = (x * 374761393 + z * 668265263) | 0; h = (h ^ (h >>> 13)) * 1274126177 | 0; return ((h ^ (h >>> 16)) >>> 0) / 4294967296; }
+function smooth(t) { return t * t * (3 - 2 * t); }
+function vnoise(x, z) { const xi = Math.floor(x), zi = Math.floor(z), xf = x - xi, zf = z - zi;
+  const a = hash2(xi, zi), b = hash2(xi + 1, zi), c = hash2(xi, zi + 1), d = hash2(xi + 1, zi + 1);
+  const u = smooth(xf), v = smooth(zf); return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v; }
+function fbm(x, z, o = 4) { let s = 0, a = 0.5, f = 1; for (let i = 0; i < o; i++) { s += a * vnoise(x * f, z * f); f *= 2.03; a *= 0.5; } return s; }
+function ridged(x, z) { let s = 0, a = 0.55, f = 1; for (let i = 0; i < 5; i++) { s += a * (1 - Math.abs(vnoise(x * f, z * f) * 2 - 1)); f *= 2.1; a *= 0.5; } return s; }
+
+// ---------------------------------------------------------------- world
+const vol = new Uint8Array(SX * SY * SZ);
+const H = new Int16Array(SX * SZ);
+const id = (x, y, z) => x + SX * (y + SY * z);
+function set(wx, y, z, m) { const x = wx + 256; if (x < 0 || x >= SX || y < 0 || y >= SY || z < 0 || z >= SZ) return; vol[id(x, y, z)] = m; }
+function get(wx, y, z) { const x = wx + 256; if (x < 0 || x >= SX || y < 0 || y >= SY || z < 0 || z >= SZ) return 0; return vol[id(x, y, z)]; }
+
+const LAKE_END = 210;
+function lakeHW(z) {
+  if (z >= LAKE_END) return -1;
+  let hw = 15 + 0.22 * z + 5 * Math.sin(z * 0.05) + 6 * (fbm(z * 0.03, 7.3) - 0.5);
+  if (z > 150) hw *= Math.sqrt(Math.max(0, (LAKE_END - z) / (LAKE_END - 150)));
+  return hw;
+}
+const PEAKS = [[90, 248, 66, 55], [160, 305, 64, 70], [-95, 262, 56, 55], [-180, 318, 64, 75], [20, 362, 52, 90], [-45, 308, 40, 60], [215, 280, 52, 55], [-240, 270, 50, 60], [55, 298, 42, 50]];
+function terrainHeight(x, z) {
+  const hw = lakeHW(z);
+  let d = hw < 0 ? Math.hypot(x, z - LAKE_END) : Math.abs(x) - hw;
+  if (z < 0) d = Math.max(d, 4);
+  if (d < 0) return WATER - 3; // lake bed
+  let h = WATER + 1 + Math.floor(Math.min(d * 0.16, 8) + 2.5 * fbm(x * 0.06, z * 0.06));
+  h += Math.floor(6 * Math.max(0, fbm(x * 0.022 + 3, z * 0.022) - 0.35) * Math.min(1, d / 30));
+  let m = 0;
+  for (const [px, pz, ph, pr] of PEAKS) {
+    const dist = Math.hypot(x - px, (z - pz) * 0.9);
+    const k = Math.exp(-Math.pow(dist / pr, 1.7));
+    m = Math.max(m, ph * k * (0.72 + 0.5 * ridged(x * 0.028, z * 0.028)));
+  }
+  h += Math.floor(m * Math.min(1, Math.max(0, (d - 6) / 45)));
+  return Math.min(SY - 3, h);
+}
+
+function buildTerrain() {
+  for (let z = 0; z < SZ; z++) for (let X = 0; X < SX; X++) {
+    const x = X - 256; H[X + SX * z] = terrainHeight(x, z);
+  }
+  for (let z = 0; z < SZ; z++) for (let X = 0; X < SX; X++) {
+    const x = X - 256, h = H[X + SX * z];
+    if (h <= WATER - 2) { // lake: bed + water (solid ice top)
+      for (let y = 0; y < WATER; y++) vol[id(X, y, z)] = y === WATER - 1 ? M.ICE : M.STONE;
+      continue;
+    }
+    let slope = 0;
+    for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const X2 = Math.min(SX - 1, Math.max(0, X + dx)), Z2 = Math.min(SZ - 1, Math.max(0, z + dz));
+      slope = Math.max(slope, Math.abs(H[X2 + SX * Z2] - h));
+    }
+    const snowy = slope <= 2 || hash2(x * 3 + 1, z * 7) > (slope > 5 ? 0.85 : 0.45);
+    for (let y = 0; y < h; y++) {
+      let m = M.STONE;
+      if (y === h - 1) m = snowy ? (h < WATER + 26 ? M.SNOWGRASS : M.SNOW) : M.STONE;
+      else if (y >= h - 3 && h < WATER + 26) m = M.DIRT;
+      vol[id(X, y, z)] = m;
+    }
+  }
+}
+
+function groundY(x, z) { return H[(x + 256) + SX * z]; }
+
+const LIGHTS = [];
+function spruce(x, z, height) {
+  const g = groundY(x, z);
+  if (g <= WATER) return;
+  for (let y = 0; y < height - 1; y++) set(x, g + y, z, M.LOG);
+  const radii = [0, 1, 1, 2, 1, 2, 2, 3, 2, 3, 3, 2];
+  for (let i = 0; i < height - 2 && i < radii.length; i++) {
+    const y = g + height - 1 - i, r = radii[i];
+    for (let dx = -r; dx <= r; dx++) for (let dz = -r; dz <= r; dz++) {
+      if (Math.abs(dx) + Math.abs(dz) > r + (r >= 2 ? 1 : 0)) continue;
+      if (get(x + dx, y, z + dz) === M.AIR) set(x + dx, y, z + dz, M.LEAVES);
+    }
+  }
+  set(x, g + height - 1, z, M.LEAVES);
+}
+
+function house(cx, cz, w, d, wallH, faceX) {
+  // flatten ground to the lowest point of the footprint + 1
+  let base = 999;
+  for (let x = cx - w; x <= cx + w; x++) for (let z = cz - d; z <= cz + d; z++) base = Math.min(base, groundY(x, z));
+  base = Math.max(base, WATER + 1);
+  for (let x = cx - w - 1; x <= cx + w + 1; x++) for (let z = cz - d - 1; z <= cz + d + 1; z++) {
+    for (let y = base; y < base + 30; y++) if (get(x, y, z) !== M.LOG) set(x, y, z, M.AIR);
+    for (let y = base - 3; y < base; y++) set(x, y, z, y === base - 1 ? M.SNOWGRASS : M.DIRT);
+  }
+  for (let x = cx - w; x <= cx + w; x++) for (let z = cz - d; z <= cz + d; z++) {
+    const edgeX = x === cx - w || x === cx + w, edgeZ = z === cz - d || z === cz + d;
+    if (!edgeX && !edgeZ) continue;
+    for (let y = base; y < base + wallH; y++) {
+      let m = y === base ? M.COBBLE : M.PLANKS;
+      if (edgeX && edgeZ) m = M.LOG;
+      set(x, y, z, m);
+    }
+  }
+  // windows: on the wall facing the lake and on the front (-z) wall
+  const wy = base + 2;
+  const wx = faceX > 0 ? cx + w : cx - w;
+  for (let z = cz - d + 2; z <= cz + d - 2; z += 3) { set(wx, wy, z, M.WINDOW); if (wallH > 4) set(wx, wy + 1, z, M.WINDOW); LIGHTS.push([wx + 0.5 + faceX * 0.6, wy + 0.8, z + 0.5, 1.0]); }
+  for (let x = cx - w + 2; x <= cx + w - 2; x += 3) { set(x, wy, cz - d, M.WINDOW); LIGHTS.push([x + 0.5, wy + 0.5, cz - d - 0.2, 0.8]); }
+  // gable roof along z
+  for (let i = 0; i <= w + 1; i++) {
+    const y = base + wallH + i;
+    for (let z = cz - d - 1; z <= cz + d + 1; z++) {
+      set(cx - w - 1 + i, y, z, M.ROOF); set(cx + w + 1 - i, y, z, M.ROOF);
+    }
+    if (cx - w - 1 + i >= cx + w + 1 - i) break;
+  }
+  // chimney
+  for (let y = base + wallH; y < base + wallH + w + 3; y++) set(cx + 1, y, cz + d - 1, M.COBBLE);
+}
+
+function lantern(x, z) {
+  const g = Math.max(groundY(x, z), WATER + 1);
+  set(x, g, z, M.FENCE); set(x, g + 1, z, M.FENCE); set(x, g + 2, z, M.LANTERN);
+  LIGHTS.push([x + 0.5, g + 2.5, z + 0.5, 1.3]);
+}
+
+function iceBlock(x, z, w, d, h, snowTop) {
+  for (let i = 0; i < w; i++) for (let j = 0; j < d; j++) {
+    const hh = h - (hash2(x + i, z + j) > 0.75 ? 1 : 0);
+    for (let y = WATER; y < WATER + hh; y++) set(x + i, y, z + j, y === WATER + hh - 1 && snowTop ? M.SNOW : M.PACKED);
+  }
+}
+
+function buildObjects() {
+  // villages
+  const left = [[44, 3, 3, 4, 4], [62, 4, 3, 5, 4], [84, 3, 4, 4, 5], [104, 4, 3, 5, 4], [126, 3, 3, 4, 5], [150, 4, 3, 5, 4], [172, 3, 3, 4, 5],
+    [70, 3, 3, 4, 16], [112, 3, 3, 5, 15], [138, 3, 3, 4, 17]];
+  for (const [z, w, d, hgt, back] of left) house(-Math.round(lakeHW(z) + w + back), z, w, d, hgt, 1);
+  const right = [[38, 3, 3, 4, 4], [58, 4, 3, 5, 5], [80, 3, 4, 4, 4], [100, 4, 3, 5, 5], [122, 3, 3, 4, 4], [146, 4, 3, 5, 5], [168, 3, 3, 4, 4],
+    [66, 3, 3, 4, 17], [92, 3, 3, 5, 16], [132, 3, 3, 4, 18]];
+  for (const [z, w, d, hgt, back] of right) house(Math.round(lakeHW(z) + w + back), z, w, d, hgt, -1);
+  for (let z = 26; z < 190; z += 9) {
+    lantern(-Math.round(lakeHW(z) + 2), z);
+    lantern(Math.round(lakeHW(z) + 2), z + 4);
+  }
+  // spruce forest
+  for (let z = 0; z < 420; z += 1) for (let x = -250; x < 250; x += 1) {
+    const cellX = Math.floor(x / 5), cellZ = Math.floor(z / 5);
+    if (x !== cellX * 5 + Math.floor(hash2(cellX, cellZ) * 5) || z !== cellZ * 5 + Math.floor(hash2(cellZ, cellX + 9) * 5)) continue;
+    const g = groundY(x, z);
+    if (g <= WATER + 1) continue;
+    const hw = lakeHW(z), d = hw < 0 ? Math.hypot(x, z - LAKE_END) : Math.abs(x) - hw;
+    const alt = g - WATER;
+    let p = 0.75 * (fbm(x * 0.04, z * 0.04) > 0.42 ? 1 : 0.35);
+    if (alt > 40) p *= 0.15; else if (alt > 26) p *= 0.5;
+    if (d < 3) p = 0;
+    if (z < 14) p *= 0.4;
+    if (get(x, g, z) !== M.AIR) continue;
+    if (hash2(x * 13, z * 7) < p) spruce(x, z, 7 + Math.floor(hash2(x, z * 3) * 6));
+  }
+  // ice floes and foreground ice blocks
+  const floes = [
+    // big foreground clusters (bottom corners)
+    [-13, 8, 5, 4, 5, true], [-9, 7, 3, 3, 3, true], [-15, 13, 3, 3, 4, true], [-11, 12, 2, 2, 2, false],
+    [9, 8, 5, 4, 5, true], [7, 7, 2, 3, 3, true], [12, 13, 3, 3, 4, true], [8, 12, 2, 2, 2, false],
+    // floes further out
+    [-4, 20, 3, 2, 2, true], [3, 24, 2, 2, 2, true], [-7, 30, 2, 3, 1, true], [6, 34, 3, 2, 1, false],
+    [-1, 40, 2, 2, 1, true], [-10, 46, 3, 2, 1, true], [10, 52, 2, 2, 1, true], [2, 58, 2, 2, 1, false], [-6, 66, 2, 2, 1, true]];
+  for (const f of floes) iceBlock(...f);
+}
+
+function buildWorld() { buildTerrain(); buildObjects(); }
+
+// ---------------------------------------------------------------- camera
+const CAM = { pos: [0.5, WATER + 8, -9], yaw: 0, pitch: 0.06, fov: 66 * Math.PI / 180 };
+function camBasis() {
+  const cp = Math.cos(CAM.pitch), sp = Math.sin(CAM.pitch), cy = Math.cos(CAM.yaw), sy = Math.sin(CAM.yaw);
+  const fwd = [sy * cp, sp, cy * cp], right = [cy, 0, -sy];
+  const up = [fwd[1] * right[2] - fwd[2] * right[1], fwd[2] * right[0] - fwd[0] * right[2], fwd[0] * right[1] - fwd[1] * right[0]];
+  return { fwd, right, up };
+}
+function screenDir(u, v, aspect) { // u,v in [0,1], v=0 top
+  const { fwd, right, up } = camBasis(); const t = Math.tan(CAM.fov / 2);
+  const x = (u * 2 - 1) * t, y = (1 - v * 2) * t / aspect;
+  const d = [fwd[0] + right[0] * x + up[0] * y, fwd[1] + right[1] * x + up[1] * y, fwd[2] + right[2] * x + up[2] * y];
+  const l = Math.hypot(...d); return d.map(c => c / l);
+}
+
+// ---------------------------------------------------------------- shaders
+const VS = `#version 300 es
+in vec2 p; void main(){ gl_Position = vec4(p,0.,1.); }`;
+
+const FS = `#version 300 es
+precision highp float; precision highp int; precision highp usampler3D;
+uniform usampler3D uVol; uniform vec2 uRes; uniform int uMode;
+uniform vec3 uCamPos, uFwd, uRight, uUp; uniform float uTanHalf;
+uniform vec3 uMoonDir, uLightDir; uniform vec4 uLights[160]; uniform int uLightCount;
+uniform vec2 uJitter;
+out vec4 outColor;
+const ivec3 SIZE = ivec3(${SX}, ${SY}, ${SZ});
+const float WATER = ${WATER}.0;
+
+float h1(vec3 p){ p = fract(p * 0.3183099 + vec3(0.71, 0.113, 0.419)); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+float h2(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.-2.*f);
+  return mix(mix(h2(i), h2(i+vec2(1,0)), f.x), mix(h2(i+vec2(0,1)), h2(i+vec2(1,1)), f.x), f.y); }
+float fbm(vec2 p){ float s = 0., a = .5; for(int i=0;i<5;i++){ s += a*vn(p); p *= 2.03; a *= .5; } return s; }
+
+uint vox(ivec3 c){ if(any(lessThan(c, ivec3(0))) || any(greaterThanEqual(c, SIZE))) return 0u; return texelFetch(uVol, c, 0).r; }
+
+// world coords: x from -256; volume index = x + 256
+vec3 toVol(vec3 w){ return w + vec3(256., 0., 0.); }
+
+struct Hit { bool ok; float t; ivec3 cell; vec3 n; uint m; };
+
+Hit trace(vec3 ro, vec3 rd, int maxSteps){
+  Hit h; h.ok = false; h.t = 1e9;
+  vec3 o = toVol(ro);
+  // clip to the volume box
+  vec3 inv = 1.0 / rd;
+  vec3 t0 = (vec3(0.) - o) * inv, t1 = (vec3(SIZE) - o) * inv;
+  vec3 tmin = min(t0, t1), tmax = max(t0, t1);
+  float tn = max(max(tmin.x, tmin.y), max(tmin.z, 0.)), tf = min(min(tmax.x, tmax.y), tmax.z);
+  if(tn > tf) return h;
+  vec3 p = o + rd * (tn + 1e-4);
+  ivec3 c = ivec3(floor(p));
+  ivec3 st = ivec3(sign(rd));
+  vec3 tDelta = abs(inv);
+  vec3 tMax = (vec3(c) + max(vec3(st), 0.) - o) * inv;
+  vec3 n = -vec3(st) * vec3(equal(tmin, vec3(tn)));
+  for(int i = 0; i < 900; i++){
+    if(i >= maxSteps) break;
+    uint m = vox(c);
+    if(m != 0u){ h.ok = true; h.cell = c; h.m = m; h.n = n;
+      vec3 tt = (vec3(c) + max(-vec3(st), 0.) - o) * inv; // entry t along each axis
+      h.t = max(max(n.x != 0. ? tt.x : -1e9, n.y != 0. ? tt.y : -1e9), n.z != 0. ? tt.z : -1e9);
+      if(h.t < 0.) h.t = tn; return h; }
+    if(tMax.x < tMax.y && tMax.x < tMax.z){ c.x += st.x; tMax.x += tDelta.x; n = vec3(-st.x, 0, 0); }
+    else if(tMax.y < tMax.z){ c.y += st.y; tMax.y += tDelta.y; n = vec3(0, -st.y, 0); }
+    else { c.z += st.z; tMax.z += tDelta.z; n = vec3(0, 0, -st.z); }
+    if(c.y >= SIZE.y && rd.y > 0.) break;
+    if(any(lessThan(c, ivec3(0))) || any(greaterThanEqual(c, SIZE))) break;
+  }
+  return h;
+}
+
+bool occluded(vec3 ro, vec3 rd, int steps){ Hit h = trace(ro, rd, steps); return h.ok; }
+
+vec3 skyColor(vec3 rd, bool withMoon){
+  float y = rd.y;
+  vec3 top = vec3(0.012, 0.022, 0.07), mid = vec3(0.035, 0.065, 0.16), hor = vec3(0.10, 0.15, 0.28);
+  vec3 col = mix(hor, mid, smoothstep(-0.02, 0.18, y));
+  col = mix(col, top, smoothstep(0.18, 0.75, y));
+  // clouds, low and dark with moonlit rims
+  vec2 cp = rd.xz / max(0.08, y + 0.12) * 1.6;
+  float cl = smoothstep(0.52, 0.85, fbm(cp + vec2(3.1, 1.7)));
+  cl *= smoothstep(0.42, 0.05, y) * smoothstep(-0.05, 0.03, y);
+  vec3 cloudCol = vec3(0.05, 0.075, 0.15) + 0.10 * vec3(0.5, 0.6, 0.9) * smoothstep(0.6, 0.9, fbm(cp * 1.7));
+  col = mix(col, cloudCol, cl * 0.85);
+  // faint stars (bright twinkling ones are drawn live in-game)
+  vec3 sd = rd * 420.;
+  vec3 cell = floor(sd); float r = h1(cell);
+  if(r > 0.985 && y > 0.04){ vec3 cp2 = cell + 0.5 + (vec3(h1(cell+1.), h1(cell+2.), h1(cell+3.)) - .5) * .6;
+    float d = length(sd - cp2); col += vec3(0.7, 0.8, 1.0) * smoothstep(0.55, 0.0, d) * (r - 0.985) * 40. * smoothstep(0.04, 0.2, y) * (1. - cl); }
+  // milky band
+  float band = exp(-pow((rd.x * 0.8 + rd.y * 0.6 - 0.55) * 3.5, 2.)) * smoothstep(0.1, 0.5, y);
+  col += vec3(0.05, 0.06, 0.12) * band * fbm(rd.xy * 9.) * (1. - cl);
+  if(withMoon){
+    vec3 mr = normalize(cross(vec3(0,1,0), uMoonDir)), mu = cross(uMoonDir, mr);
+    float a = dot(rd, mr), b = dot(rd, mu), f = dot(rd, uMoonDir);
+    float size = 0.034;
+    if(uMode != 1 && f > 0. && abs(a) < size && abs(b) < size){ // sky layer: the moon face is a live sprite in-game
+      vec2 q = vec2(a, b) / size * 0.5 + 0.5; vec2 px = floor(q * 16.);
+      float crater = step(0.78, h2(px * 1.7 + 3.)) * 0.18 + step(0.9, h2(px + 11.)) * 0.12;
+      col = vec3(0.92, 0.95, 1.0) * (1.0 - crater) * 1.6;
+    }
+    float g = max(0., f);
+    col += vec3(0.35, 0.45, 0.8) * pow(g, 900.) * 1.2 + vec3(0.2, 0.28, 0.55) * pow(g, 60.) * 0.35;
+  }
+  return col;
+}
+
+vec3 albedo(uint m, ivec3 c, vec3 n, vec2 uv, out vec3 emit){
+  emit = vec3(0);
+  vec2 px = floor(uv * 16.);
+  float rnd = h1(vec3(c) * 0.37 + vec3(px, 0.) * 0.123 + n);
+  float vrnd = h1(vec3(c) + 7.3);
+  bool top = n.y > 0.5;
+  vec3 a;
+  if(m == 1u) a = vec3(0.42, 0.43, 0.46) * (0.82 + 0.3 * rnd);
+  else if(m == 2u) a = vec3(0.36, 0.26, 0.18) * (0.8 + 0.3 * rnd);
+  else if(m == 3u) a = vec3(0.93, 0.96, 1.0) * (0.94 + 0.08 * rnd);
+  else if(m == 13u){ a = top || uv.y > 0.8 ? vec3(0.93, 0.96, 1.0) * (0.94 + 0.08 * rnd) : vec3(0.36, 0.26, 0.18) * (0.8 + 0.3 * rnd);
+    if(!top && uv.y > 0.7 && uv.y <= 0.8 && rnd > 0.5) a = vec3(0.93, 0.96, 1.0); }
+  else if(m == 4u) a = vec3(0.05, 0.10, 0.20);
+  else if(m == 5u){ a = vec3(0.55, 0.72, 0.95) * (0.85 + 0.25 * rnd); if(top) a = mix(a, vec3(0.85,0.92,1.0), 0.6); }
+  else if(m == 6u){ a = vec3(0.24, 0.16, 0.10) * (0.75 + 0.35 * fract(px.x * 0.37 + vrnd)); if(top) a = vec3(0.45, 0.33, 0.2); }
+  else if(m == 7u){ a = vec3(0.08, 0.17, 0.12) * (0.6 + 0.6 * rnd); if(top || (n.y > -0.5 && uv.y > 0.82)) a = vec3(0.86, 0.91, 0.98) * (0.9 + 0.1 * rnd); }
+  else if(m == 8u) a = vec3(0.36, 0.25, 0.15) * (0.85 + 0.2 * rnd) * (mod(px.y, 4.) < 0.5 ? 0.7 : 1.0);
+  else if(m == 9u) a = vec3(0.40, 0.40, 0.42) * (0.7 + 0.4 * rnd);
+  else if(m == 10u){ bool frame = px.x < 2. || px.x > 13. || px.y < 2. || px.y > 13. || abs(px.x - 7.5) < 1. || abs(px.y - 7.5) < 1.;
+    a = frame ? vec3(0.25, 0.17, 0.1) : vec3(1.0, 0.7, 0.35); if(!frame) emit = vec3(1.0, 0.62, 0.28) * 3.2 * (0.85 + 0.3 * rnd); }
+  else if(m == 11u){ bool core = px.x > 4. && px.x < 11. && px.y > 3. && px.y < 12.;
+    a = vec3(0.12, 0.12, 0.14); if(core) emit = vec3(1.0, 0.68, 0.32) * 4.5; }
+  else if(m == 12u){ a = vec3(0.20, 0.13, 0.09) * (0.8 + 0.3 * rnd); if(top) a = vec3(0.9, 0.94, 1.0) * (0.92 + 0.08 * rnd); }
+  else if(m == 14u) a = vec3(0.24, 0.16, 0.10);
+  else a = vec3(0.5);
+  return a * (0.92 + 0.12 * vrnd);
+}
+
+float vertexAO(vec2 side, float corner){ return (side.x > 0. && side.y > 0.) ? 0. : (3. - side.x - side.y - corner) / 3.; }
+float ambientOcclusion(ivec3 c, vec3 n, vec2 uv){
+  ivec3 nc = c + ivec3(n);
+  ivec3 t1 = abs(n.x) > .5 ? ivec3(0,1,0) : ivec3(1,0,0);
+  ivec3 t2 = abs(n.z) > .5 ? ivec3(0,1,0) : (abs(n.x) > .5 ? ivec3(0,0,1) : ivec3(0,0,1));
+  float s1 = vox(nc + t1) != 0u ? 1. : 0., s2 = vox(nc - t1) != 0u ? 1. : 0.;
+  float s3 = vox(nc + t2) != 0u ? 1. : 0., s4 = vox(nc - t2) != 0u ? 1. : 0.;
+  float c1 = vox(nc + t1 + t2) != 0u ? 1. : 0., c2 = vox(nc - t1 + t2) != 0u ? 1. : 0.;
+  float c3 = vox(nc - t1 - t2) != 0u ? 1. : 0., c4 = vox(nc + t1 - t2) != 0u ? 1. : 0.;
+  float a00 = vertexAO(vec2(s2, s4), c3), a10 = vertexAO(vec2(s1, s4), c4), a01 = vertexAO(vec2(s2, s3), c2), a11 = vertexAO(vec2(s1, s3), c1);
+  return mix(mix(a00, a10, uv.x), mix(a01, a11, uv.x), uv.y);
+}
+
+vec3 shade(Hit h, vec3 ro, vec3 rd, out float lakeMask){
+  lakeMask = 0.;
+  vec3 pos = ro + rd * h.t;
+  vec3 w = pos + vec3(256., 0., 0.);
+  vec3 f = fract(w);
+  vec2 uv = abs(h.n.x) > .5 ? f.zy : (abs(h.n.y) > .5 ? f.xz : f.xy);
+  vec3 emit; vec3 a = albedo(h.m, h.cell, h.n, uv, emit);
+  float ao = 0.45 + 0.55 * ambientOcclusion(h.cell, h.n, uv);
+  vec3 moonCol = vec3(0.45, 0.58, 1.0) * 0.55;
+  float ndl = max(0., dot(h.n, uLightDir));
+  float sh = ndl > 0. && occluded(pos + h.n * 0.02, uLightDir, 140) ? 0.12 : 1.0;
+  vec3 amb = vec3(0.045, 0.07, 0.15) * (0.5 + 0.5 * max(h.n.y, 0.)) + vec3(0.008, 0.03, 0.022) * max(h.n.y, 0.);
+  vec3 col = a * (moonCol * ndl * sh + amb * 1.2) * ao;
+  // warm village lights
+  for(int i = 0; i < 160; i++){
+    if(i >= uLightCount) break;
+    vec3 lp = uLights[i].xyz, d = lp - pos; float dist2 = dot(d, d);
+    if(dist2 > 260.) continue;
+    float ld = max(0.15, dot(h.n, normalize(d)));
+    col += a * vec3(1.0, 0.55, 0.22) * uLights[i].w * 3.2 * ld / (1. + dist2 * 0.35) * ao;
+  }
+  col += emit;
+  if(h.m == 4u){ lakeMask = 1.; }
+  return col;
+}
+
+vec3 fogged(vec3 col, float dist, vec3 rd, float y){
+  vec3 fogCol = vec3(0.04, 0.065, 0.14);
+  float f = 1. - exp(-dist * 0.0035);
+  float mist = exp(-max(0., y - WATER) * 0.35) * (1. - exp(-dist * 0.02)) * 0.35;
+  return mix(col, fogCol, clamp(f + mist, 0., 0.92));
+}
+
+vec3 aces(vec3 x){ return clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0., 1.); }
+
+vec3 cameraRay(vec2 fragCoord){
+  vec2 q = (fragCoord + uJitter) / uRes;
+  float aspect = uRes.x / uRes.y;
+  float x = (q.x * 2. - 1.) * uTanHalf, y = (q.y * 2. - 1.) * uTanHalf / aspect;
+  return normalize(uFwd + uRight * x + uUp * y);
+}
+
+// periodic noise for the tileable aurora strip
+float pn(float u, float freq, float seed){ float x = u * freq; float i = floor(x), f = fract(x); f = f*f*(3.-2.*f);
+  return mix(h2(vec2(mod(i, freq), seed)), h2(vec2(mod(i + 1., freq), seed)), f); }
+
+vec4 aurora(vec2 q){ // q.x in [0,1) wraps, q.y 0 bottom .. 1 top
+  float u = q.x, v = q.y;
+  float edge = 0.18 + 0.10 * pn(u, 3., 1.) + 0.06 * pn(u, 7., 2.) + 0.03 * sin(u * 6.2831853 * 11.);
+  float dens = smoothstep(0.25, 0.75, pn(u, 4., 3.) * 0.6 + pn(u, 9., 4.) * 0.4);
+  float rays = 0.55 + 0.45 * pn(u, 140., 5.) * pn(u, 61., 6.) * 1.6;
+  float dv = v - edge;
+  if(dv < 0.) return vec4(0);
+  float prof = exp(-dv * 3.2) * smoothstep(0.0, 0.02, dv);
+  vec3 c = mix(vec3(0.30, 1.0, 0.62), vec3(0.18, 0.85, 0.85), smoothstep(0.03, 0.25, dv));
+  c = mix(c, vec3(0.55, 0.32, 0.95), smoothstep(0.22, 0.6, dv));
+  float a = clamp(prof * dens * rays * 1.25, 0., 1.) * smoothstep(1.0, 0.75, v);
+  return vec4(c, a);
+}
+
+void main(){
+  vec2 fc = gl_FragCoord.xy;
+  if(uMode == 2){ outColor = aurora(fc / uRes); return; }
+  vec3 rd = cameraRay(fc);
+  if(uMode == 1){ vec3 s = skyColor(rd, true); outColor = vec4(pow(aces(s * 1.35), vec3(1. / 2.2)), 1.); return; }
+  Hit h = trace(uCamPos, rd, 900);
+  if(!h.ok){ outColor = vec4(0.); return; }
+  float lake;
+  vec3 col = shade(h, uCamPos, rd, lake);
+  vec3 pos = uCamPos + rd * h.t;
+  if(lake > 0.5){
+    // icy mirror: reflect the world (and sky) with a little roughness and cracks
+    vec2 wp = pos.xz;
+    vec3 n = normalize(vec3((fbm(wp * 0.35) - .5) * 0.022, 1., (fbm(wp * 0.35 + 9.) - .5) * 0.022));
+    vec3 rr = reflect(rd, n);
+    vec3 refl;
+    Hit hr = trace(pos + vec3(0, 0.02, 0), rr, 700);
+    if(hr.ok){ float lm; refl = shade(hr, pos, rr, lm); refl = fogged(refl, hr.t, rr, (pos + rr * hr.t).y); }
+    else refl = skyColor(rr, true);
+    float fres = 0.12 + 0.75 * pow(1. - max(0., -rd.y), 5.);
+    float crack = smoothstep(0.02, 0.0, abs(fbm(wp * 0.35) - 0.5)) * 0.25;
+    col = mix(col, refl, clamp(fres + 0.25, 0., 1.)) + vec3(0.25, 0.35, 0.5) * crack * 0.15;
+  }
+  col = fogged(col, h.t, rd, pos.y);
+  vec3 outc = pow(aces(col * 1.35), vec3(1. / 2.2));
+  outColor = vec4(outc, lake > 0.5 ? 0.86 : 1.0);
+}`;
+
+// ---------------------------------------------------------------- GL setup + render
+const canvas = document.getElementById('c');
+let gl, prog, volTex;
+function compile(type, src) { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; }
+
+function init(w, h) {
+  canvas.width = w; canvas.height = h;
+  gl = canvas.getContext('webgl2', { preserveDrawingBuffer: true, premultipliedAlpha: false, alpha: true, antialias: false });
+  prog = gl.createProgram();
+  gl.attachShader(prog, compile(gl.VERTEX_SHADER, VS)); gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, FS)); gl.linkProgram(prog);
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+  gl.useProgram(prog);
+  const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+  const loc = gl.getAttribLocation(prog, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+  volTex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_3D, volTex);
+  gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+  gl.texImage3D(gl.TEXTURE_3D, 0, gl.R8UI, SX, SY, SZ, 0, gl.RED_INTEGER, gl.UNSIGNED_BYTE, vol);
+}
+
+function u(name) { return gl.getUniformLocation(prog, name); }
+
+window.renderMode = async function (mode, w, h, tiles = 24) {
+  init(w, h);
+  const { fwd, right, up } = camBasis();
+  const moonDir = screenDir(0.17, 0.15, w / h);
+  const light = (() => { const d = [0.55, 0.62, -0.42]; const l = Math.hypot(...d); return d.map(c => c / l); })();
+  gl.uniform1i(u('uVol'), 0); gl.uniform2f(u('uRes'), w, h); gl.uniform1i(u('uMode'), { scene: 0, sky: 1, aurora: 2 }[mode]);
+  gl.uniform3fv(u('uCamPos'), CAM.pos); gl.uniform3fv(u('uFwd'), fwd); gl.uniform3fv(u('uRight'), right); gl.uniform3fv(u('uUp'), up);
+  gl.uniform1f(u('uTanHalf'), Math.tan(CAM.fov / 2)); gl.uniform3fv(u('uMoonDir'), moonDir); gl.uniform3fv(u('uLightDir'), light);
+  const lights = new Float32Array(160 * 4); LIGHTS.slice(0, 160).forEach((l, i) => lights.set(l, i * 4));
+  gl.uniform4fv(u('uLights'), lights); gl.uniform1i(u('uLightCount'), Math.min(160, LIGHTS.length));
+  gl.uniform2f(u('uJitter'), 0, 0);
+  gl.viewport(0, 0, w, h); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.enable(gl.SCISSOR_TEST);
+  const t0 = performance.now();
+  for (let i = 0; i < tiles; i++) {
+    const y0 = Math.floor(h * i / tiles), y1 = Math.floor(h * (i + 1) / tiles);
+    gl.scissor(0, y0, w, y1 - y0); gl.drawArrays(gl.TRIANGLES, 0, 3);
+    const px = new Uint8Array(4); gl.readPixels(0, y0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); // forces completion
+    await new Promise(r => setTimeout(r, 0));
+  }
+  return { ms: Math.round(performance.now() - t0), url: canvas.toDataURL('image/png') };
+};
+
+window.worldInfo = () => ({ lights: LIGHTS.length, cam: CAM, moon: [0.17, 0.15] });
+const tb = performance.now(); buildWorld(); window.buildMs = Math.round(performance.now() - tb);
+</script></body></html>

@@ -1,0 +1,16 @@
+# Line endings: Windows scripts keep CRLF, shell scripts LF, everything else is normalised by Git.
+* text=auto
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+gradlew text eol=lf
+*.sh text eol=lf
+
+# binaries
+*.png binary
+*.jpg binary
+*.webp binary
+*.ico binary
+*.icns binary
+*.ttf binary
+*.jar binary

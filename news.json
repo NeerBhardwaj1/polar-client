@@ -1,0 +1,25 @@
+{
+  "items": [
+    {
+      "id": "2026-11-02-browse-packs",
+      "date": "2026-11-02",
+      "tag": "Update",
+      "title": "Resource packs, shaders, a minimap and more",
+      "body": "Browse now has Resource packs and Shaders tabs: install one and it's switched on for your next game. New in game: a minimap with your waypoints, coloured hitboxes you toggle with H, and Hide Far Entities for more FPS in busy lobbies. The launcher has a skin library and shows what you're playing on Discord."
+    },
+    {
+      "id": "2026-11-02-19-mods",
+      "date": "2026-11-02",
+      "tag": "Mods",
+      "title": "19 new mods",
+      "body": "Chat timestamps, chat filter, click-to-copy and compact chat. Low Fire, Clear Water, Time & Weather, particle control, hit and glint colours. Inventory search, shulker previews and exact durability. A movable scoreboard, boss bar and tab list, waypoints with light beams, and a key to copy your coordinates."
+    },
+    {
+      "id": "2026-11-01-launcher",
+      "date": "2026-11-01",
+      "tag": "Launcher",
+      "title": "Crash helper, screenshots and mod profiles",
+      "body": "When the game crashes, the launcher now tells you why in plain words. Browse your screenshots from every version, save sets of mods as profiles, update mods with one click, and let the launcher update itself."
+    }
+  ]
+}

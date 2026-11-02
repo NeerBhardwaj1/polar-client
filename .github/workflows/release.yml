@@ -1,0 +1,142 @@
+# Builds Polar Client and publishes a GitHub release when a version tag like v1.2.3 is pushed (release.bat does that).
+# Installed launchers look at the latest release and offer "Update now" when it's newer than theirs.
+# You can also start it by hand: Actions > release > Run workflow, with the version and what's new.
+name: release
+on:
+  push:
+    tags: ['v*.*.*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release, like 1.0.1 (higher than the last release)'
+        required: true
+      notes:
+        description: "What's new (shown in the launcher's update banner)"
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  version:
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+    steps:
+      - id: v
+        shell: bash
+        env:
+          WANTED: ${{ github.event_name == 'workflow_dispatch' && inputs.version || github.ref_name }}
+        run: |
+          v="${WANTED#v}"
+          if [[ ! "$v" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::The version must look like 1.2.3 (got '$WANTED')."
+            exit 1
+          fi
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+
+  mod:
+    needs: version
+    strategy:
+      fail-fast: true
+      matrix:
+        minecraft: ['26.3', '1.21.11', '1.21.10', '1.16.5', '1.8.9']
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: mod/${{ matrix.minecraft }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: gradle/actions/wrapper-validation@v6
+      - uses: actions/setup-java@v6
+        with:
+          java-version: '25'
+          distribution: 'microsoft'
+      - uses: gradle/actions/setup-gradle@v6
+      - run: chmod +x ./gradlew
+      - run: ./gradlew build
+      - uses: actions/upload-artifact@v7
+        with:
+          name: polarclient-mod-${{ matrix.minecraft }}
+          path: mod/${{ matrix.minecraft }}/build/libs/
+
+  launcher:
+    needs: [version, mod]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    # the Windows installer is the one that matters; a macOS or Linux build failing doesn't stop the release
+    continue-on-error: ${{ matrix.os != 'windows-latest' }}
+    defaults:
+      run:
+        working-directory: launcher
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false' # unsigned builds; add signing secrets for public releases
+      VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: polarclient-mod-*
+      - name: Put each version's jar back where bundle-mod looks for it
+        shell: bash
+        run: |
+          for v in 26.3 1.21.11 1.21.10 1.16.5 1.8.9; do
+            mkdir -p ../mod/$v/build/libs
+            cp ../polarclient-mod-$v/*.jar ../mod/$v/build/libs/
+          done
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - name: Stamp the version on the launcher
+        shell: bash
+        run: node -e "const f='package.json',fs=require('fs');const p=JSON.parse(fs.readFileSync(f,'utf8'));p.version=process.env.VERSION;fs.writeFileSync(f,JSON.stringify(p,null,2)+'\n')"
+      - run: npm test
+      - run: npm run bundle-mod
+      - run: npx electron-builder --publish never
+      - uses: actions/upload-artifact@v7
+        with:
+          name: polar-launcher-${{ matrix.os }}
+          path: |
+            launcher/dist/*.exe
+            launcher/dist/*.dmg
+            launcher/dist/*.AppImage
+          if-no-files-found: error
+
+  publish:
+    needs: [version, launcher]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: polar-launcher-*
+          path: dist
+          merge-multiple: true
+      - name: Publish the release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.version.outputs.version }}
+          NOTES_INPUT: ${{ inputs.notes }}
+        run: |
+          tag="v$VERSION"
+          notes="$NOTES_INPUT"
+          # release.bat puts "what's new" in the tag's message
+          if [ -z "$notes" ] && git fetch --force origin "refs/tags/$tag:refs/tags/$tag" 2>/dev/null; then
+            notes="$(git tag -l --format='%(contents)' "$tag")"
+          fi
+          [ -n "$notes" ] || notes="Polar Client $VERSION"
+          ls -la dist
+          if ! ls dist/*.exe >/dev/null 2>&1; then
+            echo "::error::The Windows installer is missing, so nothing was released."
+            exit 1
+          fi
+          gh release create "$tag" dist/* --title "Polar Client $VERSION" --notes "$notes" --target "$GITHUB_SHA" --latest

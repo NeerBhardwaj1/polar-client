@@ -1,0 +1,53 @@
+plugins {
+	id "net.fabricmc.fabric-loom-remap" version "${loom_version}"
+	id "legacy-looming" version "${loom_version}" // must be the same version as fabric-loom's
+}
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+	archivesName = "polarclient-mc${project.minecraft_version}"
+}
+
+// The menus, HUD mods and settings are shared by every Minecraft version (../common); this project adds the
+// 1.8.9-specific glue (rendering, its own TrueType text, screens, mixins). 1.8.9 has no Fabric API events, so it
+// only needs the loader.
+sourceSets {
+	main {
+		java.srcDir '../common/src/main/java'
+		resources.srcDir '../common/src/main/resources'
+	}
+}
+
+dependencies {
+	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+	mappings(legacy.yarn(project.minecraft_version, project.yarn_build))
+	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+}
+
+processResources {
+	def props = [version: project.mod_version]
+	inputs.properties props
+	filesMatching("fabric.mod.json") {
+		expand props
+	}
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.encoding = "UTF-8"
+	if (JavaVersion.current().isJava9Compatible()) {
+		it.options.release = 8
+	}
+}
+
+java {
+	sourceCompatibility = JavaVersion.VERSION_1_8
+	targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+jar {
+	from("../LICENSE") {
+		rename { "${it}_polarclient" }
+	}
+}

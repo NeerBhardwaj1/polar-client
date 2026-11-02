@@ -1,0 +1,21 @@
+{
+	"required": true,
+	"package": "dev.polarclient.mixin",
+	"compatibilityLevel": "JAVA_25",
+	"client": [
+		"CameraMixin",
+		"EntityMixin",
+		"GuiMixin",
+		"JoinMultiplayerScreenAccessor",
+		"LightmapRenderStateExtractorMixin",
+		"MinecraftAccessor",
+		"MinecraftMixin",
+		"MouseHandlerMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	},
+	"overwrites": {
+		"requireAnnotations": true
+	}
+}

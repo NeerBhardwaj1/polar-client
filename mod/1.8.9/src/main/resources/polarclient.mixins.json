@@ -1,0 +1,38 @@
+{
+	"required": true,
+	"package": "dev.polarclient.impl.mixin",
+	"compatibilityLevel": "JAVA_8",
+	"client": [
+		"ArmorFeatureRendererMixin",
+		"ChatHudMixin",
+		"ClientPlayerInteractionManagerMixin",
+		"DefaultResourcePackMixin",
+		"EntityMixin",
+		"EntityRenderDispatcherMixin",
+		"GameOptionsMixin",
+		"GameRendererMixin",
+		"HandledScreenMixin",
+		"HeldItemRendererMixin",
+		"InGameHudMixin",
+		"ItemRendererMixin",
+		"ItemStackMixin",
+		"KeyBindingAccessor",
+		"LivingEntityRendererMixin",
+		"MinecraftClientAccessor",
+		"MinecraftClientMixin",
+		"MultiplayerScreenAccessor",
+		"ParticleManagerMixin",
+		"PlayerInventoryMixin",
+		"PlayerListHudAccessor",
+		"PlayerListHudMixin",
+		"ScreenMixin",
+		"WorldMixin",
+		"WorldRenderMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	},
+	"overwrites": {
+		"requireAnnotations": true
+	}
+}

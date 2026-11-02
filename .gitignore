@@ -1,0 +1,27 @@
+# mod (one Gradle project per Minecraft version in mod/, plus the old 26.3-only client-mod/)
+mod/*/.gradle/
+mod/*/build/
+mod/*/run/
+mod/*/out/
+mod/*/.idea/
+client-mod/.gradle/
+client-mod/build/
+client-mod/run/
+client-mod/out/
+client-mod/.idea/
+*.iml
+
+# launcher
+launcher/node_modules/
+launcher/dist/
+launcher/dist-*/
+launcher/resources/mod/*.jar
+
+.DS_Store
+
+# Minecraft's own game files that fetch-refs.bat downloads to check the code: never uploaded
+tools/mcref/
+
+# editor settings
+.vscode/
+.idea/

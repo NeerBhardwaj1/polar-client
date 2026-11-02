@@ -1,0 +1,31 @@
+{
+	"schemaVersion": 1,
+	"id": "polarclient",
+	"version": "${version}",
+	"name": "Polar Client",
+	"description": "An all-in-one PvP and quality-of-life client: HUD mods, zoom, freelook, keystrokes, custom crosshair, fullbright and more, with a Right Shift mod menu and drag-and-drop HUD editor.",
+	"authors": [
+		"Neer Bhardwaj"
+	],
+	"contact": {
+		"homepage": "https://github.com/NeerBhardwaj1",
+		"sources": "https://github.com/NeerBhardwaj1/polar-client"
+	},
+	"license": "MIT",
+	"icon": "assets/polarclient/icon.png",
+	"environment": "client",
+	"entrypoints": {
+		"client": [
+			"dev.polarclient.impl.PolarMod"
+		]
+	},
+	"mixins": [
+		"polarclient.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=0.20.1",
+		"minecraft": "1.16.5",
+		"java": ">=8",
+		"fabric": "*"
+	}
+}

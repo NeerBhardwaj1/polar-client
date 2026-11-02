@@ -1,0 +1,68 @@
+{
+  "name": "polar-client-launcher",
+  "productName": "Polar Client",
+  "version": "1.0.0",
+  "description": "Launcher for Polar Client — the Polar Client mod on Minecraft 26.3, 1.21.11, 1.21.10, 1.16.5 (Fabric) and 1.8.9 (Legacy Fabric), with a performance pack.",
+  "author": "Neer Bhardwaj",
+  "license": "MIT",
+  "main": "src/main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test test/core.test.js test/mods.test.js test/accounts.test.js test/servers.test.js test/versions.test.js test/game.test.js test/main.test.js test/modrinth.test.js test/features.test.js test/content.test.js",
+    "bundle-mod": "node scripts/bundle-mod.js",
+    "dist": "npm run bundle-mod && electron-builder",
+    "dist:win": "npm run bundle-mod && electron-builder --win",
+    "dist:mac": "npm run bundle-mod && electron-builder --mac",
+    "dist:linux": "npm run bundle-mod && electron-builder --linux"
+  },
+  "devDependencies": {
+    "electron": "^44.9.3",
+    "electron-builder": "^26.18.0"
+  },
+  "polar": {
+    "updateRepo": "NeerBhardwaj1/polar-client",
+    "newsUrl": "https://raw.githubusercontent.com/NeerBhardwaj1/polar-client/main/news.json",
+    "discordClientId": ""
+  },
+  "build": {
+    "appId": "dev.polarclient.launcher",
+    "productName": "Polar Client",
+    "copyright": "Copyright © 2026 Neer Bhardwaj. Not affiliated with Mojang or Microsoft.",
+    "directories": {
+      "buildResources": "build",
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "build/icon.png",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "resources/mod",
+        "to": "mod",
+        "filter": ["*.jar"]
+      }
+    ],
+    "win": {
+      "target": ["nsis"],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "Polar Client"
+    },
+    "mac": {
+      "target": ["dmg"],
+      "icon": "build/icon.icns",
+      "category": "public.app-category.games"
+    },
+    "linux": {
+      "target": ["AppImage"],
+      "icon": "build/icon.png",
+      "category": "Game"
+    }
+  }
+}

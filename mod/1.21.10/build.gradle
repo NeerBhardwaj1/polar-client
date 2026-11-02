@@ -1,0 +1,50 @@
+plugins {
+	id 'net.fabricmc.fabric-loom-remap' version "${loom_version}"
+}
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+	archivesName = "polarclient-mc${project.minecraft_version}"
+}
+
+// The menus, HUD mods and settings are shared by every Minecraft version (../common); this project adds the
+// version-specific glue (rendering, screens, mixins).
+sourceSets {
+	main {
+		java.srcDir '../common/src/main/java'
+		resources.srcDir '../common/src/main/resources'
+	}
+}
+
+dependencies {
+	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+	mappings loom.officialMojangMappings()
+	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+}
+
+processResources {
+	def props = [version: project.mod_version]
+	inputs.properties props
+	filesMatching("fabric.mod.json") {
+		expand props
+	}
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.release = 21
+	it.options.encoding = 'UTF-8'
+}
+
+java {
+	sourceCompatibility = JavaVersion.VERSION_21
+	targetCompatibility = JavaVersion.VERSION_21
+}
+
+jar {
+	from("../LICENSE") {
+		rename { "${it}_polarclient" }
+	}
+}
