@@ -19,7 +19,7 @@ import java.util.UUID;
 /** Polar auras: drawn where the player stands, before the player's own turning is applied. */
 @Mixin(LivingEntityRenderer.class)
 public abstract class LivingEntityRendererMixin {
-	@Inject(method = "submit(Lnet/minecraft/client/renderer/entity/state/LivingEntityRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet.minecraft.client.renderer.state.CameraRenderState;)V", at = @At("HEAD"))
+	@Inject(method = "submit(Lnet/minecraft/client/renderer/entity/state/LivingEntityRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/renderer/state/CameraRenderState;)V", at = @At("HEAD"))
 	private void polar$aura(LivingEntityRenderState state, PoseStack poseStack, SubmitNodeCollector collector, CameraRenderState camera, CallbackInfo ci) {
 		if (!(state instanceof AvatarRenderState avatar) || state.isInvisible) return;
 		UUID id = CosmeticsRender.uuid(avatar.id);
