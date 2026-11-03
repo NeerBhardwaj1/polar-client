@@ -5,7 +5,8 @@
 const http = require('node:http');
 const crypto = require('node:crypto');
 
-const MAX_BODY = 4096;
+const MAX_BODY = 16 * 1024;
+const FILE_TYPES = { json: 'application/json', png: 'image/png' };
 const PRESENCE_STATES = ['menu', 'singleplayer', 'server', 'hidden'];
 
 function readBody(req) {
@@ -32,7 +33,9 @@ function sameSecret(a, b) {
 
 /**
  * handlers: { listAccounts(): {selected, accounts}, session(uuid): Promise<{uuid,name,type,accessToken,xuid}>,
- *   presence?({state, server}) } (where the game is, for the Discord status)
+ *   presence?({state, server}) (where the game is, for the Discord status and friends),
+ *   polar?: { state(), file(rel) -> Buffer, lookup(uuids) -> {uuid: {badge, slots}}, events() -> [...] } (Polar cosmetics,
+ *   badge and friends: the game asks the launcher, which talks to the Polar server and keeps the files) }
  * Resolves with { port, token, env, close() }.
  */
 async function startBridge(handlers) {
@@ -60,6 +63,21 @@ async function startBridge(handlers) {
         const host = typeof server === 'string' && /^[A-Za-z0-9.\-:[\]_]{1,100}$/.test(server) ? server : null;
         if (handlers.presence) handlers.presence({ state, server: state === 'server' ? host : null });
         return reply(200, { ok: true });
+      }
+      if (handlers.polar && req.url.startsWith('/polar/')) {
+        const url = new URL(req.url, 'http://bridge');
+        if (req.method === 'GET' && url.pathname === '/polar/state') return reply(200, await handlers.polar.state());
+        if (req.method === 'GET' && url.pathname === '/polar/events') return reply(200, { events: handlers.polar.events() });
+        if (req.method === 'POST' && url.pathname === '/polar/players') {
+          const { uuids } = JSON.parse((await readBody(req)) || '{}');
+          return reply(200, { players: await handlers.polar.lookup(Array.isArray(uuids) ? uuids.slice(0, 200) : []) });
+        }
+        if (req.method === 'GET' && url.pathname === '/polar/file') {
+          const rel = String(url.searchParams.get('path') || '');
+          const buf = await handlers.polar.file(rel);
+          res.writeHead(200, { 'Content-Type': FILE_TYPES[rel.split('.').pop()] || 'application/octet-stream', 'Content-Length': buf.length, 'Cache-Control': 'no-store' });
+          return res.end(buf);
+        }
       }
       return reply(404, { error: 'Not found' });
     } catch (e) {

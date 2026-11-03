@@ -1,5 +1,5 @@
 'use strict';
-const { app, BrowserWindow, ipcMain, shell, safeStorage, dialog, nativeImage, clipboard } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, safeStorage, dialog, nativeImage, clipboard, protocol } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 const { Store } = require('./core/store');
@@ -18,6 +18,7 @@ const updater = require('./core/updater');
 const news = require('./core/news');
 const { SkinLibrary, pngFromDataUrl } = require('./core/skins');
 const { DiscordPresence, activityFor } = require('./core/discord');
+const { PolarService } = require('./core/polar');
 
 const POLAR_CONFIG = require('../package.json').polar || {};
 /** GitHub repository the launcher updates itself from ("owner/name" in package.json > polar.updateRepo). */
@@ -26,6 +27,11 @@ const UPDATE_REPO = POLAR_CONFIG.updateRepo || '';
 const NEWS_URL = POLAR_CONFIG.newsUrl || '';
 /** The Discord application whose name and "logo" image the status shows (package.json > polar.discordClientId). */
 const discord = new DiscordPresence(POLAR_CONFIG.discordClientId);
+/** The Polar server: cosmetics, the badge, friends and settings sync (package.json > polar.serverUrl, set by deploy-server.bat). */
+const SERVER_URL = POLAR_CONFIG.serverUrl || '';
+
+// cosmetics files reach the wardrobe page through this scheme, from the launcher's disk cache
+protocol.registerSchemesAsPrivileged([{ scheme: 'polar-cos', privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true } }]);
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();
@@ -41,6 +47,18 @@ const store = new Store(ROOT, {
   encrypt: (s) => (safeStorage.isEncryptionAvailable() ? `enc:${safeStorage.encryptString(s).toString('base64')}` : `raw:${s}`),
   decrypt: (s) => (s.startsWith('enc:') ? safeStorage.decryptString(Buffer.from(s.slice(4), 'base64')) : s.replace(/^raw:/, '')),
 });
+
+const polar = new PolarService({
+  serverUrl: SERVER_URL,
+  cacheDir: path.join(ROOT, 'cache', 'cosmetics'),
+  account: async () => {
+    const { selected } = store.listAccounts();
+    return selected ? freshAccount(selected) : null;
+  },
+  tokens: { get: (uuid) => store.getPolarSession(uuid), set: (uuid, v) => store.setPolarSession(uuid, v) },
+  onEvent: (msg) => send('polar:event', msg),
+});
+const polarSync = () => store.getSettings().polarSync !== false;
 
 let win = null;
 let hiddenForGame = false;
@@ -75,7 +93,12 @@ const game = new GameManager({
       run.log.push(String(data));
       if (run.log.length > 600) run.log.splice(0, run.log.length - 600);
     }
-    if (type === 'exit' && run) reportCrash(run, data).catch(() => {});
+    if (type === 'exit' && run) {
+      const finished = run;
+      if (polarSync() && polar.configured) polar.pushSettings(finished.version, finished.dir).catch(() => {});
+      polar.setWhere({ state: 'launcher' });
+      reportCrash(run, data).catch(() => {});
+    }
     send(`game:${type}`, data);
     if (type === 'exit') {
       closeBridge();
@@ -216,6 +239,7 @@ handle('accounts:login', async () => {
   const code = await microsoftSignIn();
   const acc = await auth.loginWithCode(code);
   await store.saveAccount(acc, true);
+  polar.connect();
   return store.listAccounts();
 });
 handle('accounts:addOffline', async (name) => {
@@ -224,10 +248,13 @@ handle('accounts:addOffline', async (name) => {
 });
 handle('accounts:select', async (uuid) => {
   await store.selectAccount(uuid);
+  polar.connect();
   return store.listAccounts();
 });
 handle('accounts:remove', async (uuid) => {
+  polar.signOut(uuid);
   await store.removeAccount(uuid);
+  polar.connect();
   return store.listAccounts();
 });
 handle('settings:get', () => store.getSettings());
@@ -421,9 +448,24 @@ handle('game:launch', async (opts = {}) => {
       presence: (where) => {
         if (!run) return;
         run.where = where;
+        polar.setWhere(where);
         updatePresence();
       },
+      polar: {
+        state: async () => {
+          const s = await polar.session({ signIn: false }).catch(() => null);
+          return { configured: polar.configured, signedIn: Boolean(s), uuid: s ? s.uuid : null, name: s ? s.name : null, online: polar.online };
+        },
+        file: (rel) => polar.file(rel),
+        lookup: (uuids) => polar.lookup(uuids),
+        events: () => polar.drainGameEvents(),
+      },
     });
+  }
+  // settings sync: if this version's Polar settings were changed on another PC since, use those
+  if (polarSync() && selectedVersion().polar && (await polar.session({ signIn: false }).catch(() => null))) {
+    const dir = await gameDir();
+    await Promise.race([polar.pullSettings(selectedVersion().id, dir), new Promise((r) => setTimeout(r, 6000))]).catch(() => {});
   }
   let result;
   run = { dir: await gameDir(), version: selectedVersion().id, startedAt: Date.now(), log: [], killed: false };
@@ -591,6 +633,32 @@ handle('skins:remove', async (id) => {
   return skinLibrary.list();
 });
 
+// ---------------------------------------------------------------- Polar: wardrobe, codes, friends (the Polar server)
+async function polarState() {
+  const { selected, accounts } = store.listAccounts();
+  const acc = accounts.find((a) => a.uuid === selected);
+  const s = await polar.session({ signIn: false }).catch(() => null);
+  return { configured: polar.configured, account: acc ? { name: acc.name, type: acc.type } : null, signedIn: Boolean(s), uuid: s ? s.uuid : null, name: s ? s.name : null, online: polar.online, sync: polarSync() };
+}
+handle('polar:state', () => polarState());
+handle('polar:signIn', async () => {
+  const { selected } = store.listAccounts();
+  if (!selected) throw new Error('Add a Microsoft account first.');
+  await polar.signIn(await freshAccount(selected));
+  polar.connect();
+  return polarState();
+});
+handle('polar:me', () => polar.me());
+handle('polar:catalog', () => polar.catalog());
+handle('polar:saveLoadout', (loadout) => polar.saveLoadout(loadout));
+handle('polar:redeem', (code) => polar.redeem(code));
+handle('polar:friends', () => polar.friends());
+handle('polar:addFriend', (name) => polar.addFriend(name));
+handle('polar:acceptFriend', (uuid) => polar.acceptFriend(uuid));
+handle('polar:removeFriend', (uuid) => polar.removeFriend(uuid));
+handle('polar:invite', (uuid) => polar.invite(uuid, run && run.where && run.where.state === 'server' ? run.where.server : ''));
+handle('polar:playing', () => (run && run.where && run.where.state === 'server' ? run.where.server : null));
+
 // ---------------------------------------------------------------- news
 handle('news:get', () => news.load({ url: NEWS_URL, cacheFile: path.join(ROOT, 'news-cache.json'), bundledFile: path.join(__dirname, 'news.json') }));
 handle('cape:set', async (capeId) => profile.setCape(await profileToken(), capeId || null));
@@ -626,10 +694,24 @@ app.on('second-instance', () => {
   }
 });
 app.whenReady().then(() => {
+  protocol.handle('polar-cos', async (req) => {
+    const cors = { 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-store' };
+    try {
+      const rel = decodeURIComponent(new URL(req.url).pathname.replace(/^\/+/, ''));
+      const buf = await polar.file(rel);
+      return new Response(buf, { headers: { ...cors, 'Content-Type': rel.endsWith('.png') ? 'image/png' : 'application/json' } });
+    } catch (e) {
+      return new Response(String((e && e.message) || e), { status: (e && e.status) || 404, headers: cors });
+    }
+  });
   createWindow();
   updatePresence();
+  polar.connect();
 });
-app.on('before-quit', () => discord.stop());
+app.on('before-quit', () => {
+  discord.stop();
+  polar.disconnect();
+});
 app.on('window-all-closed', () => {
   if (!game.running) app.quit();
 });

@@ -1,7 +1,7 @@
 {
   "name": "polar-client-launcher",
   "productName": "Polar Client",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Launcher for Polar Client — the Polar Client mod on Minecraft 26.3, 1.21.11, 1.21.10, 1.16.5 (Fabric) and 1.8.9 (Legacy Fabric), with a performance pack.",
   "author": "Neer Bhardwaj",
   "license": "MIT",
@@ -9,7 +9,7 @@
   "private": true,
   "scripts": {
     "start": "electron .",
-    "test": "node --test test/core.test.js test/mods.test.js test/accounts.test.js test/servers.test.js test/versions.test.js test/game.test.js test/main.test.js test/modrinth.test.js test/features.test.js test/content.test.js",
+    "test": "node --test test/core.test.js test/mods.test.js test/accounts.test.js test/servers.test.js test/versions.test.js test/game.test.js test/main.test.js test/modrinth.test.js test/features.test.js test/content.test.js test/polar.test.js",
     "bundle-mod": "node scripts/bundle-mod.js",
     "dist": "npm run bundle-mod && electron-builder",
     "dist:win": "npm run bundle-mod && electron-builder --win",
@@ -23,7 +23,8 @@
   "polar": {
     "updateRepo": "NeerBhardwaj1/polar-client",
     "newsUrl": "https://raw.githubusercontent.com/NeerBhardwaj1/polar-client/main/news.json",
-    "discordClientId": ""
+    "discordClientId": "",
+    "serverUrl": "https://polar-client.neerbhardwaj-dev.workers.dev"
   },
   "build": {
     "appId": "dev.polarclient.launcher",
@@ -42,11 +43,15 @@
       {
         "from": "resources/mod",
         "to": "mod",
-        "filter": ["*.jar"]
+        "filter": [
+          "*.jar"
+        ]
       }
     ],
     "win": {
-      "target": ["nsis"],
+      "target": [
+        "nsis"
+      ],
       "icon": "build/icon.ico"
     },
     "nsis": {
@@ -55,12 +60,16 @@
       "shortcutName": "Polar Client"
     },
     "mac": {
-      "target": ["dmg"],
+      "target": [
+        "dmg"
+      ],
       "icon": "build/icon.icns",
       "category": "public.app-category.games"
     },
     "linux": {
-      "target": ["AppImage"],
+      "target": [
+        "AppImage"
+      ],
       "icon": "build/icon.png",
       "category": "Game"
     }

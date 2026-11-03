@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Polar Admin</title>
+<link rel="icon" href="/cosmetics/badge.png">
+<style>
+  :root {
+    --bg: #070d1c; --panel: #0e1a33; --panel2: #13234a; --line: #1f3566; --text: #e6f0ff; --dim: #8fa6cc;
+    --ice: #5ce1ff; --ice2: #2f8cff; --good: #3ddc97; --bad: #ff5c7a; --gold: #f4c542; --radius: 12px;
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--bg); }
+  body { margin: 0; min-height: 100vh; background: radial-gradient(1200px 600px at 70% -10%, #13306a 0%, var(--bg) 60%) fixed; color: var(--text);
+         font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { display: flex; align-items: center; gap: 12px; padding: 18px 24px; border-bottom: 1px solid var(--line); background: rgba(7, 13, 28, .6);
+           backdrop-filter: blur(8px); position: sticky; top: 0; z-index: 2; }
+  header img { width: 28px; height: 28px; image-rendering: pixelated; }
+  header h1 { font-size: 17px; margin: 0; letter-spacing: .02em; }
+  header .sp { flex: 1; }
+  main { max-width: 1100px; margin: 0 auto; padding: 24px 16px 60px; display: grid; gap: 20px; }
+  section { background: linear-gradient(180deg, var(--panel2), var(--panel)); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 20px; }
+  section h2 { margin: 0 0 12px; font-size: 15px; text-transform: uppercase; letter-spacing: .08em; color: var(--ice); }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
+  .stat { background: rgba(255, 255, 255, .03); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+  .stat b { display: block; font-size: 26px; font-variant-numeric: tabular-nums; }
+  .stat span { color: var(--dim); font-size: 13px; }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+  label { display: grid; gap: 4px; color: var(--dim); font-size: 13px; }
+  input, select { background: #081129; color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; font: inherit; min-width: 0; }
+  input:focus, select:focus { outline: 2px solid var(--ice2); outline-offset: 0; }
+  button { background: linear-gradient(180deg, #3aa0ff, var(--ice2)); color: #fff; border: 0; border-radius: 8px; padding: 9px 14px; font: inherit; font-weight: 600; cursor: pointer; }
+  button.ghost { background: transparent; border: 1px solid var(--line); color: var(--text); }
+  button.danger { background: linear-gradient(180deg, #ff7a91, var(--bad)); }
+  button:disabled { opacity: .5; cursor: default; }
+  .muted { color: var(--dim); }
+  .msg { min-height: 20px; margin-top: 10px; font-size: 14px; }
+  .msg.err { color: var(--bad); }
+  .msg.ok { color: var(--good); }
+  .card { display: grid; grid-template-columns: 72px 1fr; gap: 16px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+  .card img { width: 72px; height: 72px; image-rendering: pixelated; border-radius: 8px; background: #081129; }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+  .tag { font-size: 12px; padding: 2px 8px; border-radius: 99px; border: 1px solid var(--line); color: var(--dim); }
+  .tag.on { color: var(--good); border-color: rgba(61, 220, 151, .4); }
+  .tag.bad { color: var(--bad); border-color: rgba(255, 92, 122, .4); }
+  .tag.gold { color: var(--gold); border-color: rgba(244, 197, 66, .4); }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  th { color: var(--dim); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
+  td code, .code { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; letter-spacing: .04em; }
+  .made { display: grid; gap: 6px; margin-top: 12px; }
+  .made div { display: flex; gap: 8px; align-items: center; background: #081129; border: 1px dashed var(--ice2); border-radius: 8px; padding: 8px 10px; }
+  .made div .code { flex: 1; font-size: 16px; color: var(--ice); }
+  .scroll { overflow-x: auto; }
+  #login { max-width: 420px; margin: 12vh auto 0; }
+  .hidden { display: none !important; }
+  @media (max-width: 600px) { .card { grid-template-columns: 1fr; } header { padding: 14px 16px; } }
+</style>
+</head>
+<body>
+<header>
+  <img src="/cosmetics/badge.png" alt="">
+  <h1>Polar Admin</h1>
+  <div class="sp"></div>
+  <button class="ghost hidden" id="logout" type="button">Sign out</button>
+</header>
+
+<main>
+  <section id="login">
+    <h2>Sign in</h2>
+    <p class="muted">Use the admin password from <span class="code">server\admin-password.txt</span> (made by deploy-server.bat).</p>
+    <form id="loginForm" class="row">
+      <label style="flex:1">Password<input id="pw" type="password" autocomplete="current-password" required></label>
+      <button type="submit">Sign in</button>
+    </form>
+    <div class="msg" id="loginMsg"></div>
+  </section>
+
+  <div id="app" class="hidden" style="display:grid; gap:20px">
+    <section>
+      <h2>Overview</h2>
+      <div class="stats" id="stats"></div>
+    </section>
+
+    <section>
+      <h2>Players</h2>
+      <form id="findForm" class="row">
+        <label style="flex:1">Minecraft name or id<input id="q" required placeholder="e.g. Notch"></label>
+        <button type="submit">Look up</button>
+      </form>
+      <div class="msg" id="playerMsg"></div>
+      <div id="player"></div>
+    </section>
+
+    <section>
+      <h2>Codes</h2>
+      <p class="muted">Codes hand out a cosmetic (usually a special one) to whoever redeems them in the launcher.</p>
+      <form id="codeForm" class="row">
+        <label style="flex:2">Cosmetic<select id="codeItem" required></select></label>
+        <label>Uses per code<input id="codeUses" type="number" min="1" max="100000" value="1" style="width:110px"></label>
+        <label>How many codes<input id="codeCount" type="number" min="1" max="100" value="1" style="width:110px"></label>
+        <label style="flex:1">Note (optional)<input id="codeNote" maxlength="80" placeholder="e.g. giveaway on Discord"></label>
+        <button type="submit">Make codes</button>
+      </form>
+      <div class="msg" id="codeMsg"></div>
+      <div class="made" id="made"></div>
+      <div class="scroll"><table id="codes"></table></div>
+    </section>
+  </div>
+</main>
+
+<script>
+'use strict';
+const $ = (id) => document.getElementById(id);
+let password = '';
+try { password = sessionStorage.getItem('polarAdmin') || ''; } catch { password = ''; }
+let catalog = { items: [] };
+
+/** Builds elements without innerHTML: h('td', { class: 'x' }, 'text', child). */
+function h(tag, attrs, ...kids) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+    else if (v !== false && v != null) el.setAttribute(k, v === true ? '' : v);
+  }
+  for (const k of kids.flat()) if (k != null && k !== false) el.append(k instanceof Node ? k : String(k));
+  return el;
+}
+
+async function api(method, path, body) {
+  const res = await fetch(`/v1/admin/${path}`, {
+    method, headers: { Authorization: `Bearer ${password}`, ...(body ? { 'Content-Type': 'application/json' } : {}) },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  let data = null;
+  try { data = await res.json(); } catch { data = null; }
+  if (!res.ok) {
+    if (res.status === 401) signOut();
+    throw new Error((data && data.error) || `Error ${res.status}`);
+  }
+  return data;
+}
+
+function say(el, text, ok) {
+  $(el).textContent = text || '';
+  $(el).className = `msg ${text ? (ok ? 'ok' : 'err') : ''}`;
+}
+
+function itemName(id) {
+  const it = catalog.items.find((i) => i.id === id);
+  return it ? it.name : id;
+}
+
+function when(ms) {
+  if (!ms) return 'never';
+  const d = (Date.now() - ms) / 1000;
+  if (d < 90) return 'just now';
+  if (d < 3600) return `${Math.round(d / 60)} min ago`;
+  if (d < 86400 * 2) return `${Math.round(d / 3600)} h ago`;
+  return new Date(ms).toLocaleDateString();
+}
+
+function itemOptions(select) {
+  select.replaceChildren();
+  const special = catalog.items.filter((i) => i.special);
+  const free = catalog.items.filter((i) => !i.special);
+  const group = (label, items) => h('optgroup', { label }, items.map((i) => h('option', { value: i.id }, `${i.name} (${i.type})`)));
+  select.append(group('Special (only by grant or code)', special), group('Free for everyone', free));
+}
+
+async function loadStats() {
+  const s = await api('GET', 'stats');
+  const cards = [['players', 'players'], ['online', 'on Polar now'], ['today', 'active today'], ['grants', 'cosmetics given'],
+    ['codes', 'codes with uses left'], ['items', 'cosmetics'], ['special', 'special cosmetics']];
+  $('stats').replaceChildren(...cards.map(([k, label]) => h('div', { class: 'stat' }, h('b', {}, s[k] ?? 0), h('span', {}, label))));
+}
+
+function renderPlayer(p) {
+  const grantSel = h('select', {});
+  itemOptions(grantSel);
+  const ownedIds = new Set(p.grants.map((g) => g.item));
+  const slots = Object.entries(p.loadout.slots || {});
+  const card = h('div', { class: 'card' },
+    h('img', { src: `https://mc-heads.net/avatar/${p.uuid}/72`, alt: '' }),
+    h('div', {},
+      h('div', { style: 'font-size:20px;font-weight:700' }, p.name),
+      h('div', { class: 'muted code', style: 'font-size:12px' }, p.uuid),
+      h('div', { class: 'tags' },
+        h('span', { class: `tag ${p.online ? 'on' : ''}` }, p.online ? 'on Polar now' : `last seen ${when(p.lastSeen)}`),
+        p.signedIn ? h('span', { class: 'tag' }, 'has used Polar') : h('span', { class: 'tag' }, 'never signed in to Polar'),
+        p.banned ? h('span', { class: 'tag bad' }, 'blocked') : null),
+      h('div', { class: 'muted', style: 'margin-top:6px' }, slots.length ? `Wearing: ${slots.map(([s, v]) => itemName(v.id)).join(', ')}` : 'Wearing nothing yet'),
+      h('h3', { style: 'font-size:13px;margin:14px 0 6px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em' }, 'Given cosmetics'),
+      p.grants.length ? h('table', {}, h('tbody', {}, p.grants.map((g) => h('tr', {},
+        h('td', {}, itemName(g.item)),
+        h('td', { class: 'muted' }, g.source === 'admin' ? 'given by admin' : g.source && g.source.startsWith('code:') ? `code ${g.source.slice(5)}` : g.source || ''),
+        h('td', { class: 'muted' }, when(g.created)),
+        h('td', { style: 'text-align:right' }, h('button', { class: 'ghost', type: 'button', onclick: () => act('revoke', { player: p.uuid, item: g.item }, `Took ${itemName(g.item)} back.`) }, 'Take back'))))))
+        : h('div', { class: 'muted' }, 'None yet.'),
+      h('div', { class: 'row', style: 'margin-top:12px' },
+        h('label', { style: 'flex:1' }, 'Give a cosmetic', grantSel),
+        h('button', { type: 'button', onclick: () => {
+          if (ownedIds.has(grantSel.value)) return say('playerMsg', `${p.name} already has ${itemName(grantSel.value)}.`, false);
+          act('grant', { player: p.uuid, item: grantSel.value }, `Gave ${itemName(grantSel.value)} to ${p.name}.`);
+        } }, 'Give'),
+        h('button', { class: p.banned ? 'ghost' : 'danger', type: 'button', onclick: () => {
+          if (!p.banned && !confirm(`Block ${p.name} from Polar features (cosmetics, friends, badge)?`)) return;
+          act('ban', { player: p.uuid, banned: !p.banned }, p.banned ? `${p.name} is unblocked.` : `${p.name} is blocked.`);
+        } }, p.banned ? 'Unblock' : 'Block'))));
+  $('player').replaceChildren(card);
+}
+
+async function act(path, body, okText) {
+  try {
+    renderPlayer(await api('POST', path, body));
+    say('playerMsg', okText, true);
+    loadStats();
+  } catch (e) {
+    say('playerMsg', e.message, false);
+  }
+}
+
+function renderCodes(list) {
+  const rows = list.codes.map((c) => {
+    const pretty = `${c.code.slice(0, 5)}-${c.code.slice(5, 9)}-${c.code.slice(9)}`;
+    return h('tr', {},
+      h('td', {}, h('code', {}, pretty)),
+      h('td', {}, itemName(c.item)),
+      h('td', {}, `${c.uses_left} / ${c.uses}`),
+      h('td', { class: 'muted' }, c.note || ''),
+      h('td', { class: 'muted' }, when(c.created)),
+      h('td', { style: 'text-align:right;white-space:nowrap' },
+        h('button', { class: 'ghost', type: 'button', onclick: () => copy(pretty) }, 'Copy'), ' ',
+        h('button', { class: 'ghost', type: 'button', onclick: async () => {
+          if (!confirm(`Delete code ${pretty}? Nobody can redeem it after this.`)) return;
+          try { renderCodes(await api('DELETE', `codes?code=${encodeURIComponent(c.code)}`)); loadStats(); } catch (e) { say('codeMsg', e.message, false); }
+        } }, 'Delete')));
+  });
+  $('codes').replaceChildren(
+    h('thead', {}, h('tr', {}, ['Code', 'Cosmetic', 'Uses left', 'Note', 'Made', ''].map((t) => h('th', {}, t)))),
+    h('tbody', {}, rows.length ? rows : h('tr', {}, h('td', { colspan: 6, class: 'muted' }, 'No codes yet.'))));
+}
+
+async function copy(text) {
+  try { await navigator.clipboard.writeText(text); say('codeMsg', `Copied ${text}`, true); } catch { say('codeMsg', text, true); }
+}
+
+function signOut() {
+  password = '';
+  try { sessionStorage.removeItem('polarAdmin'); } catch { /* private mode */ }
+  $('app').classList.add('hidden');
+  $('logout').classList.add('hidden');
+  $('login').classList.remove('hidden');
+}
+
+async function start() {
+  await loadStats();
+  try { catalog = await (await fetch('/cosmetics/catalog.json')).json(); } catch { catalog = { items: [] }; }
+  itemOptions($('codeItem'));
+  renderCodes(await api('GET', 'codes'));
+  $('login').classList.add('hidden');
+  $('app').classList.remove('hidden');
+  $('logout').classList.remove('hidden');
+}
+
+$('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  password = $('pw').value.trim();
+  try {
+    await start();
+    try { sessionStorage.setItem('polarAdmin', password); } catch { /* private mode */ }
+    say('loginMsg', '');
+  } catch (err) {
+    say('loginMsg', err.message, false);
+  }
+});
+$('logout').addEventListener('click', signOut);
+$('findForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  say('playerMsg', 'Looking…', true);
+  try {
+    renderPlayer(await api('GET', `player?q=${encodeURIComponent($('q').value.trim())}`));
+    say('playerMsg', '');
+  } catch (err) {
+    $('player').replaceChildren();
+    say('playerMsg', err.message, false);
+  }
+});
+$('codeForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  try {
+    const r = await api('POST', 'codes', { item: $('codeItem').value, uses: Number($('codeUses').value), count: Number($('codeCount').value), note: $('codeNote').value });
+    $('made').replaceChildren(...r.made.map((c) => h('div', {}, h('span', { class: 'code' }, c), h('button', { class: 'ghost', type: 'button', onclick: () => copy(c) }, 'Copy'))));
+    renderCodes(r);
+    say('codeMsg', `Made ${r.made.length} code${r.made.length === 1 ? '' : 's'} for ${itemName($('codeItem').value)}.`, true);
+    loadStats();
+  } catch (err) {
+    say('codeMsg', err.message, false);
+  }
+});
+if (password) start().catch(() => signOut());
+</script>
+</body>
+</html>

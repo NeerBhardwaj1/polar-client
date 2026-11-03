@@ -114,6 +114,7 @@ public final class ModuleManager {
 	public final HitColorModule hitColor;
 	public final GlintColorModule glintColor;
 	public final HitboxesModule hitboxes;
+	public final dev.polarclient.cosmetics.PolarCosmeticsModule cosmetics;
 	public final HideFarEntitiesModule hideFarEntities;
 	// inventory
 	public final ItemDurabilityModule itemDurability;
@@ -170,6 +171,7 @@ public final class ModuleManager {
 		hitColor = add(new HitColorModule());
 		glintColor = add(new GlintColorModule());
 		hitboxes = add(new HitboxesModule());
+		cosmetics = add(new dev.polarclient.cosmetics.PolarCosmeticsModule());
 		// combat
 		add(new HitIndicatorModule());
 		add(new HitSoundModule());

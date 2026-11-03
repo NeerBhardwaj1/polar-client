@@ -791,4 +791,36 @@ public final class McPlatform extends Platform {
 	public void destroyTexture(Object texture) {
 		MapReader.destroy(texture);
 	}
+
+	// ---- Polar cosmetics and friends
+
+	@Override
+	public List<UUID> worldPlayerIds() {
+		MinecraftClient mc = MinecraftClient.getInstance();
+		List<UUID> out = new ArrayList<>();
+		if (mc.world == null) return out;
+		for (Object pl : mc.world.playerEntities) out.add(((net.minecraft.entity.player.PlayerEntity) pl).getUuid());
+		return out;
+	}
+
+	@Override
+	public void chatLine(String text) {
+		MinecraftClient.getInstance().inGameHud.getChatHud().addMessage(new net.minecraft.text.LiteralText(text));
+	}
+
+	@Override
+	public void joinServer(String address) {
+		MinecraftClient mc = MinecraftClient.getInstance();
+		if (mc.world != null) {
+			mc.world.disconnect();
+			mc.connect((net.minecraft.client.world.ClientWorld) null);
+		}
+		mc.setScreen(new net.minecraft.client.gui.screen.ConnectScreen(new net.minecraft.client.gui.screen.TitleScreen(), mc, new net.minecraft.client.network.ServerInfo(address, address, false)));
+	}
+
+	@Override
+	public String polarKeyName(PolarKey key) {
+		int code = Keys.get(key).getCode();
+		return code == 0 ? null : net.minecraft.client.option.GameOptions.getFormattedNameForKeyCode(code);
+	}
 }

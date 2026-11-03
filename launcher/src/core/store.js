@@ -41,6 +41,7 @@ class Store {
     this.rootDir = rootDir;
     this.settingsFile = path.join(rootDir, 'settings.json');
     this.accountsFile = path.join(rootDir, 'accounts.json');
+    this.polarFile = path.join(rootDir, 'polar-sessions.json');
     this.encrypt = encrypt || ((s) => s);
     this.decrypt = decrypt || ((s) => s);
   }
@@ -136,6 +137,26 @@ class Store {
     const data = this.readJson(this.accountsFile, { selected: null, accounts: [] });
     if (data.accounts.some((a) => a.uuid === uuid)) data.selected = uuid;
     await this.writeJson(this.accountsFile, data);
+  }
+
+  /** The Polar server sign-in of an account ({ token, expires, name }), kept encrypted like the Minecraft tokens. */
+  getPolarSession(uuid) {
+    const v = this.readJson(this.polarFile, {})[uuid];
+    if (!v) return null;
+    try {
+      return JSON.parse(this.decrypt(v));
+    } catch {
+      return null;
+    }
+  }
+
+  setPolarSession(uuid, value) {
+    const data = this.readJson(this.polarFile, {});
+    if (value) data[uuid] = this.encrypt(JSON.stringify(value));
+    else delete data[uuid];
+    fs.mkdirSync(path.dirname(this.polarFile), { recursive: true });
+    fs.writeFileSync(`${this.polarFile}.tmp`, JSON.stringify(data, null, 2));
+    fs.renameSync(`${this.polarFile}.tmp`, this.polarFile);
   }
 
   async removeAccount(uuid) {

@@ -22,6 +22,7 @@ function loadMain() {
     shell: { openExternal: noop, openPath: noop },
     dialog: {},
     safeStorage: { isEncryptionAvailable: () => false, encryptString: (s) => Buffer.from(s), decryptString: (b) => b.toString() },
+    protocol: { registerSchemesAsPrivileged: noop, handle: noop },
   };
   const load = Module._load;
   Module._load = function (request, ...rest) {
@@ -65,6 +66,14 @@ test('the launcher window can load everything it shows at startup', async () => 
     global.fetch = fetch;
   }
   assert.equal(typeof info.discord, 'boolean');
+  // Polar online features: registered, and off (with a clear reason) until the server is set up
+  for (const channel of ['polar:state', 'polar:signIn', 'polar:me', 'polar:catalog', 'polar:saveLoadout', 'polar:redeem', 'polar:friends',
+    'polar:addFriend', 'polar:acceptFriend', 'polar:removeFriend', 'polar:invite', 'polar:playing']) assert.ok(handlers[channel], `${channel} is registered`);
+  const polarState = await call('polar:state');
+  assert.equal(polarState.ok, true, polarState.error);
+  assert.equal(polarState.data.configured, Boolean(require('../package.json').polar.serverUrl));
+  assert.equal(polarState.data.signedIn, false);
+  assert.equal(polarState.data.sync, true, 'settings sync is on by default');
   assert.equal((await call('settings:get')).data.discordStatus, true, 'Discord status is on by default');
 
   // nothing saved yet: no mod profiles and no screenshots, and a dev build never offers a launcher update

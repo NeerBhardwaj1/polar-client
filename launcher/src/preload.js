@@ -2,7 +2,7 @@
 // The only bridge between the UI and the launcher. The page gets these functions and nothing else.
 const { contextBridge, ipcRenderer } = require('electron');
 
-const EVENTS = ['game:progress', 'game:log', 'game:exit', 'game:started', 'game:crash', 'win:state', 'accounts:changed', 'servers:changed'];
+const EVENTS = ['game:progress', 'game:log', 'game:exit', 'game:started', 'game:crash', 'win:state', 'accounts:changed', 'servers:changed', 'polar:event'];
 
 async function call(channel, ...args) {
   const r = await ipcRenderer.invoke(channel, ...args);
@@ -53,6 +53,20 @@ contextBridge.exposeInMainWorld('polar', {
     apply: (id) => call('skins:apply', id),
     update: (id, patch) => call('skins:update', { id, ...patch }),
     remove: (id) => call('skins:remove', id),
+  },
+  online: {
+    state: () => call('polar:state'),
+    signIn: () => call('polar:signIn'),
+    me: () => call('polar:me'),
+    catalog: () => call('polar:catalog'),
+    saveLoadout: (loadout) => call('polar:saveLoadout', loadout),
+    redeem: (code) => call('polar:redeem', code),
+    friends: () => call('polar:friends'),
+    addFriend: (name) => call('polar:addFriend', name),
+    acceptFriend: (uuid) => call('polar:acceptFriend', uuid),
+    removeFriend: (uuid) => call('polar:removeFriend', uuid),
+    invite: (uuid) => call('polar:invite', uuid),
+    playing: () => call('polar:playing'),
   },
   news: () => call('news:get'),
   shots: {

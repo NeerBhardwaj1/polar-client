@@ -1,0 +1,59 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Polar cosmetics preview</title>
+<style>
+  body { margin: 0; background: #0b1426; color: #cfe5ff; font: 13px system-ui, sans-serif; }
+  .grid { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px; }
+  figure { margin: 0; background: radial-gradient(circle at 50% 40%, #1d3462, #0b1426 70%); border-radius: 10px; }
+  figcaption { text-align: center; padding: 4px 0 8px; font-size: 11px; max-width: 100%; overflow: hidden; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<div class="grid" id="grid"></div>
+<script src="../../../launcher/src/renderer/cosmetics3d.js"></script>
+<script>
+// ?items=cape_aurora,wings_frost&views=200:8,160:10,20:5,90:0&size=360&walk=0
+const q = new URLSearchParams(location.search);
+const BASE = '../../../server/public/cosmetics/';
+async function main() {
+  const cat = await (await fetch(BASE + 'catalog.json')).json();
+  // ?items=a,b (one outfit) or ?sets=a,b;c;d (one row per outfit)
+  const sets = (q.get('sets') || q.get('items') || '').split(';').map((s) => s.split(',').filter(Boolean));
+  const views = (q.get('views') || '200:8,150:12,30:6').split(',').map((v) => v.split(':').map(Number));
+  const size = Number(q.get('size') || 360);
+  const viewers = [];
+  for (const want of sets) {
+    const loadout = {};
+    for (const id of want) {
+      const it = cat.items.find((i) => i.id === id);
+      if (it) loadout[it.type] = { ...it, color: q.get('color') || it.defaultColor };
+    }
+    for (const [yaw, pitch, zoom] of views) {
+      const fig = document.createElement('figure');
+      const c = document.createElement('canvas');
+      c.width = size; c.height = Math.round(size * 1.25);
+      fig.append(c);
+      const cap = document.createElement('figcaption');
+      cap.textContent = `${want.join(' ')} · ${yaw}`;
+      fig.append(cap);
+      document.getElementById('grid').append(fig);
+      const v = PolarCosmetics3D.create(c, { baseUrl: BASE, skin: window.SKIN || q.get('skin'), yaw, pitch, zoom: zoom || Number(q.get('zoom') || 1), time: 0 });
+      v.set({ walking: Number(q.get('walk') || 0), targetY: Number(q.get('ty') || 1.02), boost: Number(q.get('boost') || 1) });
+      await v.setLoadout(loadout);
+      viewers.push(v);
+    }
+    const br = document.createElement('div');
+    br.style.flexBasis = '100%';
+    document.getElementById('grid').append(br);
+  }
+  window.viewers = viewers;
+  window.ready = true;
+}
+window.stepAll = (dt, n) => { for (let i = 0; i < n; i++) for (const v of window.viewers) v.step(dt); };
+main();
+</script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Polar Client</title>
+<link rel="icon" href="/cosmetics/badge.png">
+<style>
+  :root { --bg: #070d1c; --text: #e6f0ff; --dim: #8fa6cc; --ice: #5ce1ff; --ice2: #2f8cff; --line: #1f3566; }
+  * { box-sizing: border-box; }
+  html { background: var(--bg); }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px 16px; color: var(--text); text-align: center;
+         background: radial-gradient(900px 500px at 50% 0%, #163a7a 0%, var(--bg) 65%) fixed; font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  img { width: 96px; height: 96px; image-rendering: pixelated; filter: drop-shadow(0 8px 30px rgba(92, 225, 255, .35)); }
+  h1 { font-size: clamp(32px, 7vw, 52px); margin: 12px 0 4px; letter-spacing: .01em; }
+  p { color: var(--dim); max-width: 520px; margin: 8px auto; }
+  a.btn { display: inline-block; margin-top: 18px; padding: 12px 22px; border-radius: 10px; color: #fff; text-decoration: none; font-weight: 700;
+          background: linear-gradient(180deg, #3aa0ff, var(--ice2)); box-shadow: 0 10px 30px rgba(47, 140, 255, .35); }
+  .status { margin-top: 26px; font-size: 13px; color: var(--dim); }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #666; margin-right: 6px; vertical-align: middle; }
+</style>
+</head>
+<body>
+<main>
+  <img src="/cosmetics/badge.png" alt="Polar">
+  <h1>Polar Client</h1>
+  <p>A fast, good-looking Minecraft client with cosmetics, friends and settings that follow you between PCs.</p>
+  <a class="btn" href="https://github.com/NeerBhardwaj1/polar-client/releases/latest">Download Polar</a>
+  <div class="status"><span class="dot" id="dot"></span><span id="status">Checking the Polar server…</span></div>
+</main>
+<script>
+fetch('/v1/health').then((r) => r.json()).then((h) => {
+  document.getElementById('dot').style.background = h.ok && h.configured ? '#3ddc97' : '#f4c542';
+  document.getElementById('status').textContent = h.ok && h.configured ? `Polar server online · ${h.items} cosmetics` : 'Polar server is up but not set up yet (run deploy-server.bat).';
+}).catch(() => {
+  document.getElementById('dot').style.background = '#ff5c7a';
+  document.getElementById('status').textContent = "Can't reach the Polar server.";
+});
+</script>
+</body>
+</html>

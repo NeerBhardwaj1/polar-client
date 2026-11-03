@@ -1,0 +1,1379 @@
+{
+ "format": 1,
+ "collections": [
+  {
+   "id": "polar",
+   "name": "Polar Collection"
+  },
+  {
+   "id": "celestial",
+   "name": "Celestial"
+  },
+  {
+   "id": "inferno",
+   "name": "Inferno"
+  },
+  {
+   "id": "cosmic",
+   "name": "Cosmic"
+  },
+  {
+   "id": "nature",
+   "name": "Nature"
+  },
+  {
+   "id": "neon",
+   "name": "Neon"
+  },
+  {
+   "id": "royal",
+   "name": "Royal"
+  },
+  {
+   "id": "cute",
+   "name": "Cute"
+  },
+  {
+   "id": "classic",
+   "name": "Classic"
+  },
+  {
+   "id": "special",
+   "name": "Special"
+  }
+ ],
+ "items": [
+  {
+   "id": "cape_aurora",
+   "name": "Aurora Cape",
+   "description": "Northern lights rolling over snowy peaks.",
+   "collection": "polar",
+   "rarity": "legendary",
+   "type": "cape",
+   "texture": "textures/cape_aurora.png",
+   "frames": 20,
+   "frameTime": 90
+  },
+  {
+   "id": "cape_glacier",
+   "name": "Glacier",
+   "description": "Faceted glacier ice with a light that sweeps across it.",
+   "collection": "polar",
+   "rarity": "epic",
+   "type": "cape",
+   "texture": "textures/cape_glacier.png",
+   "frames": 20,
+   "frameTime": 80
+  },
+  {
+   "id": "cape_polar_night",
+   "name": "Polar Night",
+   "description": "Snow drifting past pines under a crescent moon.",
+   "collection": "polar",
+   "rarity": "epic",
+   "type": "cape",
+   "texture": "textures/cape_polar_night.png",
+   "frames": 20,
+   "frameTime": 110
+  },
+  {
+   "id": "cape_cozy_cabin",
+   "name": "Cozy Cabin",
+   "description": "A warm little cabin in the falling snow.",
+   "collection": "polar",
+   "rarity": "rare",
+   "type": "cape",
+   "texture": "textures/cape_cozy_cabin.png",
+   "frames": 20,
+   "frameTime": 110
+  },
+  {
+   "id": "cape_frostbite",
+   "name": "Frostbite",
+   "description": "Frost creeps in from every edge and pulses with cold light.",
+   "collection": "polar",
+   "rarity": "rare",
+   "type": "cape",
+   "texture": "textures/cape_frostbite.png",
+   "frames": 16,
+   "frameTime": 100
+  },
+  {
+   "id": "cape_inferno",
+   "name": "Inferno",
+   "description": "A wall of living flame.",
+   "collection": "inferno",
+   "rarity": "legendary",
+   "type": "cape",
+   "texture": "textures/cape_inferno.png",
+   "frames": 16,
+   "frameTime": 70
+  },
+  {
+   "id": "cape_molten",
+   "name": "Molten Core",
+   "description": "Cracked basalt over rivers of lava.",
+   "collection": "inferno",
+   "rarity": "epic",
+   "type": "cape",
+   "texture": "textures/cape_molten.png",
+   "frames": 16,
+   "frameTime": 100
+  },
+  {
+   "id": "cape_ember",
+   "name": "Ember",
+   "description": "Glowing embers drifting up from the coals.",
+   "collection": "inferno",
+   "rarity": "rare",
+   "type": "cape",
+   "texture": "textures/cape_ember.png",
+   "frames": 20,
+   "frameTime": 90
+  },
+  {
+   "id": "cape_galaxy",
+   "name": "Galaxy",
+   "description": "A spiral galaxy turning slowly among the stars.",
+   "collection": "cosmic",
+   "rarity": "legendary",
+   "type": "cape",
+   "texture": "textures/cape_galaxy.png",
+   "frames": 24,
+   "frameTime": 110
+  },
+  {
+   "id": "cape_nebula",
+   "name": "Nebula",
+   "description": "Clouds of pink and blue star-stuff drifting by.",
+   "collection": "cosmic",
+   "rarity": "epic",
+   "type": "cape",
+   "texture": "textures/cape_nebula.png",
+   "frames": 20,
+   "frameTime": 120
+  },
+  {
+   "id": "cape_event_horizon",
+   "name": "Event Horizon",
+   "description": "A black hole with a blazing, swirling disk.",
+   "collection": "cosmic",
+   "rarity": "legendary",
+   "type": "cape",
+   "texture": "textures/cape_event_horizon.png",
+   "frames": 24,
+   "frameTime": 80
+  },
+  {
+   "id": "cape_ocean",
+   "name": "Ocean Depths",
+   "description": "Sunbeams, swaying kelp and a passing school of fish.",
+   "collection": "nature",
+   "rarity": "epic",
+   "type": "cape",
+   "texture": "textures/cape_ocean.png",
+   "frames": 20,
+   "frameTime": 110
+  },
+  {
+   "id": "cape_sakura",
+   "name": "Sakura",
+   "description": "Cherry blossoms with petals on the wind.",
+   "collection": "nature",
+   "rarity": "epic",
+   "type": "cape",
+   "texture": "textures/cape_sakura.png",
+   "frames": 20,
+   "frameTime": 110
+  },
+  {
+   "id": "cape_firefly_forest",
+   "name": "Firefly Forest",
+   "description": "Fireflies drifting through a misty forest.",
+   "collection": "nature",
+   "rarity": "rare",
+   "type": "cape",
+   "texture": "textures/cape_firefly_forest.png",
+   "frames": 20,
+   "frameTime": 110
+  },
+  {
+   "id": "cape_golden_hour",
+   "name": "Golden Hour",
+   "description": "The sun sinking into a shimmering sea.",
+   "collection": "nature",
+   "rarity": "rare",
+   "type": "cape",
+   "texture": "textures/cape_golden_hour.png",
+   "frames": 20,
+   "frameTime": 120
+  },
+  {
+   "id": "cape_storm",
+   "name": "Stormbringer",
+   "description": "Rolling storm clouds, rain and lightning.",
+   "collection": "nature",
+   "rarity": "epic",
+   "type": "cape",
+   "texture": "textures/cape_storm.png",
+   "frames": 20,
+   "frameTime": 90
+  },
+  {
+   "id": "cape_synthwave",
+   "name": "Synthwave",
+   "description": "A neon grid racing toward a striped sun.",
+   "collection": "neon",
+   "rarity": "legendary",
+   "type": "cape",
+   "texture": "textures/cape_synthwave.png",
+   "frames": 16,
+   "frameTime": 80
+  },
+  {
+   "id": "cape_code_rain",
+   "name": "Code Rain",
+   "description": "Falling streams of glowing green code.",
+   "collection": "neon",
+   "rarity": "epic",
+   "type": "cape",
+   "texture": "textures/cape_code_rain.png",
+   "frames": 20,
+   "frameTime": 90
+  },
+  {
+   "id": "cape_prism",
+   "name": "Prism",
+   "description": "Every colour of the rainbow flowing across the Polar snowflake.",
+   "collection": "neon",
+   "rarity": "rare",
+   "type": "cape",
+   "texture": "textures/cape_prism.png",
+   "frames": 20,
+   "frameTime": 90
+  },
+  {
+   "id": "cape_regal",
+   "name": "Regal",
+   "description": "Crimson velvet, gold trim and a royal crest.",
+   "collection": "royal",
+   "rarity": "epic",
+   "type": "cape",
+   "texture": "textures/cape_regal.png",
+   "frames": 16,
+   "frameTime": 90
+  },
+  {
+   "id": "cape_gilded",
+   "name": "Gilded",
+   "description": "Engraved gold that catches the light.",
+   "collection": "royal",
+   "rarity": "rare",
+   "type": "cape",
+   "texture": "textures/cape_gilded.png",
+   "frames": 16,
+   "frameTime": 90
+  },
+  {
+   "id": "cape_arcane",
+   "name": "Arcane Circle",
+   "description": "A glowing magic circle that turns as you move.",
+   "collection": "royal",
+   "rarity": "legendary",
+   "type": "cape",
+   "texture": "textures/cape_arcane.png",
+   "frames": 24,
+   "frameTime": 120
+  },
+  {
+   "id": "cape_classic_ice",
+   "name": "Polar Classic: Ice",
+   "description": "The classic Polar cape in ice blue.",
+   "collection": "classic",
+   "rarity": "common",
+   "type": "cape",
+   "texture": "textures/cape_classic_ice.png",
+   "frames": 1,
+   "frameTime": 100
+  },
+  {
+   "id": "cape_classic_midnight",
+   "name": "Polar Classic: Midnight",
+   "description": "The classic Polar cape in midnight black.",
+   "collection": "classic",
+   "rarity": "common",
+   "type": "cape",
+   "texture": "textures/cape_classic_midnight.png",
+   "frames": 1,
+   "frameTime": 100
+  },
+  {
+   "id": "cape_classic_crimson",
+   "name": "Polar Classic: Crimson",
+   "description": "The classic Polar cape in crimson.",
+   "collection": "classic",
+   "rarity": "common",
+   "type": "cape",
+   "texture": "textures/cape_classic_crimson.png",
+   "frames": 1,
+   "frameTime": 100
+  },
+  {
+   "id": "cape_classic_snow",
+   "name": "Polar Classic: Snow",
+   "description": "The classic Polar cape in snow white.",
+   "collection": "classic",
+   "rarity": "common",
+   "type": "cape",
+   "texture": "textures/cape_classic_snow.png",
+   "frames": 1,
+   "frameTime": 100
+  },
+  {
+   "id": "cape_founder",
+   "name": "Founder",
+   "description": "For the people who were here first.",
+   "collection": "special",
+   "rarity": "legendary",
+   "type": "cape",
+   "special": true,
+   "texture": "textures/cape_founder.png",
+   "frames": 20,
+   "frameTime": 100
+  },
+  {
+   "id": "cape_supporter",
+   "name": "Supporter",
+   "description": "Thank you for supporting Polar.",
+   "collection": "special",
+   "rarity": "epic",
+   "type": "cape",
+   "special": true,
+   "texture": "textures/cape_supporter.png",
+   "frames": 20,
+   "frameTime": 90
+  },
+  {
+   "id": "cape_staff",
+   "name": "Polar Staff",
+   "description": "Worn by the people who build Polar.",
+   "collection": "special",
+   "rarity": "legendary",
+   "type": "cape",
+   "special": true,
+   "texture": "textures/cape_staff.png",
+   "frames": 20,
+   "frameTime": 90
+  },
+  {
+   "id": "cape_creator",
+   "name": "Creator",
+   "description": "For creators who make videos and streams with Polar.",
+   "collection": "special",
+   "rarity": "epic",
+   "type": "cape",
+   "special": true,
+   "texture": "textures/cape_creator.png",
+   "frames": 20,
+   "frameTime": 100
+  },
+  {
+   "id": "wings_frost",
+   "name": "Frost Wings",
+   "description": "Wings of glittering ice crystals.",
+   "collection": "polar",
+   "rarity": "legendary",
+   "type": "wings",
+   "model": "models/wings_frost.json"
+  },
+  {
+   "id": "wings_aurora",
+   "name": "Aurora Wings",
+   "description": "Feathers that shimmer like the northern lights.",
+   "collection": "polar",
+   "rarity": "legendary",
+   "type": "wings",
+   "model": "models/wings_aurora.json"
+  },
+  {
+   "id": "wings_angel",
+   "name": "Angel Wings",
+   "description": "Soft white feathers with a golden glow.",
+   "collection": "celestial",
+   "rarity": "epic",
+   "type": "wings",
+   "model": "models/wings_angel.json"
+  },
+  {
+   "id": "wings_phoenix",
+   "name": "Phoenix Wings",
+   "description": "Blazing feathers that flicker like fire.",
+   "collection": "inferno",
+   "rarity": "legendary",
+   "type": "wings",
+   "model": "models/wings_phoenix.json"
+  },
+  {
+   "id": "wings_demon",
+   "name": "Demon Wings",
+   "description": "Leathery wings with smouldering veins.",
+   "collection": "inferno",
+   "rarity": "epic",
+   "type": "wings",
+   "model": "models/wings_demon.json"
+  },
+  {
+   "id": "wings_dragon",
+   "name": "Dragon Wings",
+   "description": "Scaled dragon wings in any colour you like.",
+   "collection": "nature",
+   "rarity": "epic",
+   "type": "wings",
+   "tint": true,
+   "defaultColor": "#3fbf74",
+   "model": "models/wings_dragon.json"
+  },
+  {
+   "id": "wings_galaxy",
+   "name": "Galaxy Wings",
+   "description": "Wings cut from the night sky, full of twinkling stars.",
+   "collection": "cosmic",
+   "rarity": "legendary",
+   "type": "wings",
+   "model": "models/wings_galaxy.json"
+  },
+  {
+   "id": "wings_butterfly",
+   "name": "Butterfly Wings",
+   "description": "Patterned butterfly wings in any colour you like.",
+   "collection": "cute",
+   "rarity": "rare",
+   "type": "wings",
+   "tint": true,
+   "defaultColor": "#ff9a2e",
+   "model": "models/wings_butterfly.json"
+  },
+  {
+   "id": "wings_fairy",
+   "name": "Fairy Wings",
+   "description": "Glassy, glimmering fairy wings that flutter fast.",
+   "collection": "cute",
+   "rarity": "epic",
+   "type": "wings",
+   "model": "models/wings_fairy.json"
+  },
+  {
+   "id": "wings_mech",
+   "name": "Mech Wings",
+   "description": "Steel blades with energy running through them.",
+   "collection": "neon",
+   "rarity": "epic",
+   "type": "wings",
+   "model": "models/wings_mech.json"
+  },
+  {
+   "id": "head_halo",
+   "name": "Golden Halo",
+   "description": "A glowing golden halo that slowly turns.",
+   "collection": "celestial",
+   "rarity": "epic",
+   "type": "head",
+   "model": "models/head_halo.json"
+  },
+  {
+   "id": "head_fallen_halo",
+   "name": "Fallen Halo",
+   "description": "A crooked halo burning a deep red.",
+   "collection": "inferno",
+   "rarity": "rare",
+   "type": "head",
+   "model": "models/head_fallen_halo.json"
+  },
+  {
+   "id": "head_frost_crown",
+   "name": "Frost Crown",
+   "description": "A crown of glowing ice spikes.",
+   "collection": "polar",
+   "rarity": "legendary",
+   "type": "head",
+   "model": "models/head_frost_crown.json"
+  },
+  {
+   "id": "head_royal_crown",
+   "name": "Royal Crown",
+   "description": "Gold, jewels and red velvet.",
+   "collection": "royal",
+   "rarity": "epic",
+   "type": "head",
+   "model": "models/head_royal_crown.json"
+  },
+  {
+   "id": "head_flower_crown",
+   "name": "Flower Crown",
+   "description": "A ring of bright little flowers.",
+   "collection": "nature",
+   "rarity": "rare",
+   "type": "head",
+   "model": "models/head_flower_crown.json"
+  },
+  {
+   "id": "head_polar_ears",
+   "name": "Polar Bear Ears",
+   "description": "Round, fluffy polar bear ears.",
+   "collection": "polar",
+   "rarity": "common",
+   "type": "head",
+   "model": "models/head_polar_ears.json"
+  },
+  {
+   "id": "head_cat_ears",
+   "name": "Cat Ears",
+   "description": "Twitchy cat ears in any colour you like.",
+   "collection": "cute",
+   "rarity": "common",
+   "type": "head",
+   "tint": true,
+   "defaultColor": "#3a3a3a",
+   "model": "models/head_cat_ears.json"
+  },
+  {
+   "id": "head_fox_ears",
+   "name": "Fox Ears",
+   "description": "Orange fox ears with dark tips.",
+   "collection": "cute",
+   "rarity": "rare",
+   "type": "head",
+   "model": "models/head_fox_ears.json"
+  },
+  {
+   "id": "head_bunny_ears",
+   "name": "Bunny Ears",
+   "description": "Long, floppy bunny ears that bounce as you move.",
+   "collection": "cute",
+   "rarity": "rare",
+   "type": "head",
+   "model": "models/head_bunny_ears.json"
+  },
+  {
+   "id": "head_devil_horns",
+   "name": "Devil Horns",
+   "description": "Curling horns with smouldering tips.",
+   "collection": "inferno",
+   "rarity": "epic",
+   "type": "head",
+   "model": "models/head_devil_horns.json"
+  },
+  {
+   "id": "head_antlers",
+   "name": "Reindeer Antlers",
+   "description": "Branching antlers for the snowy season.",
+   "collection": "polar",
+   "rarity": "rare",
+   "type": "head",
+   "model": "models/head_antlers.json"
+  },
+  {
+   "id": "head_antennae",
+   "name": "Cosmic Antennae",
+   "description": "Bouncy antennae with glowing tips.",
+   "collection": "cosmic",
+   "rarity": "rare",
+   "type": "head",
+   "model": "models/head_antennae.json"
+  },
+  {
+   "id": "head_top_hat",
+   "name": "Top Hat",
+   "description": "A dapper top hat; pick the ribbon colour.",
+   "collection": "classic",
+   "rarity": "common",
+   "type": "head",
+   "tint": true,
+   "defaultColor": "#c81e3a",
+   "model": "models/head_top_hat.json"
+  },
+  {
+   "id": "head_witch_hat",
+   "name": "Witch Hat",
+   "description": "A tall, crooked hat with a golden buckle.",
+   "collection": "royal",
+   "rarity": "rare",
+   "type": "head",
+   "model": "models/head_witch_hat.json"
+  },
+  {
+   "id": "head_beanie",
+   "name": "Beanie",
+   "description": "A cosy knit beanie with a pompom.",
+   "collection": "classic",
+   "rarity": "common",
+   "type": "head",
+   "tint": true,
+   "defaultColor": "#2f6fed",
+   "model": "models/head_beanie.json"
+  },
+  {
+   "id": "head_santa_hat",
+   "name": "Santa Hat",
+   "description": "A floppy red hat with a fluffy pompom.",
+   "collection": "polar",
+   "rarity": "rare",
+   "type": "head",
+   "model": "models/head_santa_hat.json"
+  },
+  {
+   "id": "head_party_hat",
+   "name": "Party Hat",
+   "description": "Stripes, dots and a pompom. Party time.",
+   "collection": "cute",
+   "rarity": "common",
+   "type": "head",
+   "model": "models/head_party_hat.json"
+  },
+  {
+   "id": "head_headphones",
+   "name": "Headphones",
+   "description": "Studio headphones with rainbow lights.",
+   "collection": "neon",
+   "rarity": "rare",
+   "type": "head",
+   "tint": true,
+   "defaultColor": "#f2f2f2",
+   "model": "models/head_headphones.json"
+  },
+  {
+   "id": "head_snowflake_orbit",
+   "name": "Snowflake Orbit",
+   "description": "Three glowing snowflakes circling your head.",
+   "collection": "polar",
+   "rarity": "epic",
+   "type": "head",
+   "model": "models/head_snowflake_orbit.json"
+  },
+  {
+   "id": "back_frost_sword",
+   "name": "Frostbrand",
+   "description": "A blade of living ice, strapped across your back.",
+   "collection": "polar",
+   "rarity": "epic",
+   "type": "back",
+   "model": "models/back_frost_sword.json"
+  },
+  {
+   "id": "back_katana",
+   "name": "Katana",
+   "description": "A sheathed blade with a red cord wrap.",
+   "collection": "classic",
+   "rarity": "rare",
+   "type": "back",
+   "model": "models/back_katana.json"
+  },
+  {
+   "id": "back_backpack",
+   "name": "Adventure Pack",
+   "description": "A roomy backpack in any colour you like.",
+   "collection": "classic",
+   "rarity": "common",
+   "type": "back",
+   "tint": true,
+   "defaultColor": "#e2a33b",
+   "model": "models/back_backpack.json"
+  },
+  {
+   "id": "back_quiver",
+   "name": "Quiver",
+   "description": "A leather quiver full of arrows.",
+   "collection": "nature",
+   "rarity": "rare",
+   "type": "back",
+   "model": "models/back_quiver.json"
+  },
+  {
+   "id": "back_guitar",
+   "name": "Acoustic Guitar",
+   "description": "For campfire songs between matches.",
+   "collection": "classic",
+   "rarity": "rare",
+   "type": "back",
+   "model": "models/back_guitar.json"
+  },
+  {
+   "id": "back_rocket_pack",
+   "name": "Rocket Pack",
+   "description": "Twin tanks with roaring flames.",
+   "collection": "neon",
+   "rarity": "legendary",
+   "type": "back",
+   "model": "models/back_rocket_pack.json"
+  },
+  {
+   "id": "back_polar_pal",
+   "name": "Polar Pal",
+   "description": "A cuddly polar bear riding on your back.",
+   "collection": "polar",
+   "rarity": "epic",
+   "type": "back",
+   "model": "models/back_polar_pal.json"
+  },
+  {
+   "id": "back_snowboard",
+   "name": "Snowboard",
+   "description": "A snowboard with the Polar snowflake on it.",
+   "collection": "polar",
+   "rarity": "rare",
+   "type": "back",
+   "model": "models/back_snowboard.json"
+  },
+  {
+   "id": "aura_snowfall",
+   "name": "Snowfall",
+   "description": "Gentle snow falls around you.",
+   "collection": "polar",
+   "rarity": "rare",
+   "type": "aura",
+   "particles": {
+    "rate": 7,
+    "life": [
+     2.2,
+     3.4
+    ],
+    "size": [
+     0.06,
+     0.11
+    ],
+    "radius": [
+     0.35,
+     0.8
+    ],
+    "height": [
+     1.6,
+     2.3
+    ],
+    "vx": [
+     -0.04,
+     0.04
+    ],
+    "vy": [
+     -0.55,
+     -0.35
+    ],
+    "vz": [
+     -0.04,
+     0.04
+    ],
+    "spin": [
+     -60,
+     60
+    ],
+    "colors": [
+     "#ffffff",
+     "#dff1ff",
+     "#bfe3ff"
+    ],
+    "glow": false,
+    "texture": "textures/aura_snowfall.png",
+    "frames": 4
+   }
+  },
+  {
+   "id": "aura_aurora",
+   "name": "Aurora Sparkle",
+   "description": "Northern-light sparkles spiralling up around you.",
+   "collection": "polar",
+   "rarity": "epic",
+   "type": "aura",
+   "particles": {
+    "rate": 15,
+    "life": [
+     1.6,
+     2.4
+    ],
+    "size": [
+     0.08,
+     0.15
+    ],
+    "radius": [
+     0.45,
+     0.7
+    ],
+    "height": [
+     0.0,
+     0.6
+    ],
+    "vy": [
+     0.45,
+     0.8
+    ],
+    "swirl": [
+     1.2,
+     2.0
+    ],
+    "spin": [
+     -90,
+     90
+    ],
+    "shrink": true,
+    "colors": [
+     "#5cf2d6",
+     "#3dffb0",
+     "#7a7cff",
+     "#c08bff"
+    ],
+    "glow": true,
+    "texture": "textures/aura_aurora.png",
+    "frames": 3
+   }
+  },
+  {
+   "id": "aura_flames",
+   "name": "Flame Ring",
+   "description": "A ring of fire licking up from your feet.",
+   "collection": "inferno",
+   "rarity": "legendary",
+   "type": "aura",
+   "particles": {
+    "rate": 26,
+    "life": [
+     0.5,
+     0.9
+    ],
+    "size": [
+     0.09,
+     0.16
+    ],
+    "radius": [
+     0.38,
+     0.55
+    ],
+    "height": [
+     0.0,
+     0.12
+    ],
+    "vx": [
+     -0.03,
+     0.03
+    ],
+    "vy": [
+     0.7,
+     1.1
+    ],
+    "vz": [
+     -0.03,
+     0.03
+    ],
+    "shrink": true,
+    "colors": [
+     "#ffb13b",
+     "#ff7a1a",
+     "#ff4b1f",
+     "#ffd23f"
+    ],
+    "glow": true,
+    "texture": "textures/aura_flames.png",
+    "frames": 4
+   }
+  },
+  {
+   "id": "aura_embers",
+   "name": "Embers",
+   "description": "Hot embers drifting up into the air.",
+   "collection": "inferno",
+   "rarity": "rare",
+   "type": "aura",
+   "particles": {
+    "rate": 12,
+    "life": [
+     1.4,
+     2.4
+    ],
+    "size": [
+     0.05,
+     0.09
+    ],
+    "radius": [
+     0.2,
+     0.75
+    ],
+    "height": [
+     0.0,
+     1.0
+    ],
+    "vx": [
+     -0.12,
+     0.12
+    ],
+    "vy": [
+     0.35,
+     0.7
+    ],
+    "vz": [
+     -0.12,
+     0.12
+    ],
+    "shrink": true,
+    "colors": [
+     "#ff9c4a",
+     "#ffd27a",
+     "#ff6a10"
+    ],
+    "glow": true,
+    "texture": "textures/aura_embers.png",
+    "frames": 2
+   }
+  },
+  {
+   "id": "aura_hearts",
+   "name": "Lovestruck",
+   "description": "Little hearts floating up around you.",
+   "collection": "cute",
+   "rarity": "rare",
+   "type": "aura",
+   "particles": {
+    "rate": 3,
+    "life": [
+     1.8,
+     2.6
+    ],
+    "size": [
+     0.08,
+     0.13
+    ],
+    "radius": [
+     0.4,
+     0.75
+    ],
+    "height": [
+     0.6,
+     1.6
+    ],
+    "vx": [
+     -0.05,
+     0.05
+    ],
+    "vy": [
+     0.3,
+     0.5
+    ],
+    "vz": [
+     -0.05,
+     0.05
+    ],
+    "colors": [
+     "#ff4f8b",
+     "#ff7ab8",
+     "#e11d48",
+     "#ff9fbf"
+    ],
+    "glow": false,
+    "texture": "textures/aura_hearts.png",
+    "frames": 1
+   }
+  },
+  {
+   "id": "aura_stars",
+   "name": "Starfall",
+   "description": "Golden stars orbiting and twinkling around you.",
+   "collection": "celestial",
+   "rarity": "epic",
+   "type": "aura",
+   "particles": {
+    "rate": 9,
+    "life": [
+     1.6,
+     2.4
+    ],
+    "size": [
+     0.08,
+     0.15
+    ],
+    "radius": [
+     0.6,
+     0.8
+    ],
+    "height": [
+     0.4,
+     1.9
+    ],
+    "vy": [
+     -0.05,
+     0.05
+    ],
+    "swirl": [
+     1.0,
+     1.6
+    ],
+    "spin": [
+     -120,
+     120
+    ],
+    "shrink": true,
+    "colors": [
+     "#ffe08a",
+     "#fff4c2",
+     "#ffd23f",
+     "#ffffff"
+    ],
+    "glow": true,
+    "texture": "textures/aura_stars.png",
+    "frames": 2
+   }
+  },
+  {
+   "id": "aura_notes",
+   "name": "Melody",
+   "description": "Music notes in every colour bobbing up around you.",
+   "collection": "neon",
+   "rarity": "rare",
+   "type": "aura",
+   "particles": {
+    "rate": 3,
+    "life": [
+     1.8,
+     2.6
+    ],
+    "size": [
+     0.08,
+     0.12
+    ],
+    "radius": [
+     0.45,
+     0.8
+    ],
+    "height": [
+     0.8,
+     1.8
+    ],
+    "vx": [
+     -0.06,
+     0.06
+    ],
+    "vy": [
+     0.25,
+     0.45
+    ],
+    "vz": [
+     -0.06,
+     0.06
+    ],
+    "colors": [
+     "#ff4f8b",
+     "#ffd23f",
+     "#3dffb0",
+     "#38bdf8",
+     "#c084fc"
+    ],
+    "glow": false,
+    "texture": "textures/aura_notes.png",
+    "frames": 2
+   }
+  },
+  {
+   "id": "aura_petals",
+   "name": "Petal Breeze",
+   "description": "Cherry blossom petals drifting down around you.",
+   "collection": "nature",
+   "rarity": "rare",
+   "type": "aura",
+   "particles": {
+    "rate": 5,
+    "life": [
+     2.4,
+     3.4
+    ],
+    "size": [
+     0.06,
+     0.1
+    ],
+    "radius": [
+     0.4,
+     0.85
+    ],
+    "height": [
+     1.8,
+     2.4
+    ],
+    "vx": [
+     -0.12,
+     0.12
+    ],
+    "vy": [
+     -0.4,
+     -0.25
+    ],
+    "vz": [
+     -0.12,
+     0.12
+    ],
+    "spin": [
+     -120,
+     120
+    ],
+    "swirl": [
+     0.3,
+     0.6
+    ],
+    "colors": [
+     "#ffb7d0",
+     "#ff9ec4",
+     "#ffd6e5"
+    ],
+    "glow": false,
+    "texture": "textures/aura_petals.png",
+    "frames": 3
+   }
+  },
+  {
+   "id": "aura_leaves",
+   "name": "Autumn Leaves",
+   "description": "Orange and red leaves tumbling down around you.",
+   "collection": "nature",
+   "rarity": "common",
+   "type": "aura",
+   "particles": {
+    "rate": 4,
+    "life": [
+     2.4,
+     3.4
+    ],
+    "size": [
+     0.07,
+     0.11
+    ],
+    "radius": [
+     0.4,
+     0.85
+    ],
+    "height": [
+     1.8,
+     2.4
+    ],
+    "vx": [
+     -0.15,
+     0.15
+    ],
+    "vy": [
+     -0.45,
+     -0.3
+    ],
+    "vz": [
+     -0.15,
+     0.15
+    ],
+    "spin": [
+     -150,
+     150
+    ],
+    "colors": [
+     "#f97316",
+     "#ea580c",
+     "#facc15",
+     "#b91c1c"
+    ],
+    "glow": false,
+    "texture": "textures/aura_leaves.png",
+    "frames": 3
+   }
+  },
+  {
+   "id": "aura_bubbles",
+   "name": "Bubbles",
+   "description": "Shiny bubbles wobbling up around you.",
+   "collection": "nature",
+   "rarity": "common",
+   "type": "aura",
+   "particles": {
+    "rate": 4,
+    "life": [
+     1.8,
+     2.8
+    ],
+    "size": [
+     0.05,
+     0.12
+    ],
+    "radius": [
+     0.35,
+     0.8
+    ],
+    "height": [
+     0.0,
+     1.2
+    ],
+    "vx": [
+     -0.08,
+     0.08
+    ],
+    "vy": [
+     0.3,
+     0.55
+    ],
+    "vz": [
+     -0.08,
+     0.08
+    ],
+    "colors": [
+     "#bfefff",
+     "#e0f7ff",
+     "#a5d8ff"
+    ],
+    "glow": false,
+    "texture": "textures/aura_bubbles.png",
+    "frames": 1
+   }
+  },
+  {
+   "id": "aura_void",
+   "name": "Void Rift",
+   "description": "Dark matter swirling around you, flecked with violet light.",
+   "collection": "cosmic",
+   "rarity": "legendary",
+   "type": "aura",
+   "particles": {
+    "rate": 18,
+    "life": [
+     1.2,
+     2.0
+    ],
+    "size": [
+     0.08,
+     0.16
+    ],
+    "radius": [
+     0.5,
+     0.75
+    ],
+    "height": [
+     0.0,
+     1.9
+    ],
+    "vy": [
+     0.05,
+     0.25
+    ],
+    "swirl": [
+     -2.6,
+     -1.6
+    ],
+    "spin": [
+     -200,
+     200
+    ],
+    "shrink": true,
+    "colors": [
+     "#5b21b6",
+     "#2e0854",
+     "#7c3aed",
+     "#c084fc",
+     "#a855f7"
+    ],
+    "glow": false,
+    "texture": "textures/aura_void.png",
+    "frames": 3
+   }
+  },
+  {
+   "id": "aura_sparks",
+   "name": "Static Charge",
+   "description": "Crackling electric sparks jumping around you.",
+   "collection": "neon",
+   "rarity": "epic",
+   "type": "aura",
+   "particles": {
+    "rate": 14,
+    "life": [
+     0.18,
+     0.4
+    ],
+    "size": [
+     0.08,
+     0.15
+    ],
+    "radius": [
+     0.3,
+     0.6
+    ],
+    "height": [
+     0.1,
+     1.9
+    ],
+    "vx": [
+     -0.3,
+     0.3
+    ],
+    "vy": [
+     -0.3,
+     0.3
+    ],
+    "vz": [
+     -0.3,
+     0.3
+    ],
+    "spin": [
+     -400,
+     400
+    ],
+    "colors": [
+     "#7dd3fc",
+     "#e0f2fe",
+     "#a5b4fc",
+     "#ffffff"
+    ],
+    "glow": true,
+    "texture": "textures/aura_sparks.png",
+    "frames": 4
+   }
+  },
+  {
+   "id": "aura_fireflies",
+   "name": "Fireflies",
+   "description": "Fireflies blinking lazily around you.",
+   "collection": "nature",
+   "rarity": "rare",
+   "type": "aura",
+   "particles": {
+    "rate": 4,
+    "life": [
+     3.0,
+     4.5
+    ],
+    "size": [
+     0.06,
+     0.1
+    ],
+    "radius": [
+     0.5,
+     1.0
+    ],
+    "height": [
+     0.3,
+     1.8
+    ],
+    "vx": [
+     -0.12,
+     0.12
+    ],
+    "vy": [
+     -0.08,
+     0.12
+    ],
+    "vz": [
+     -0.12,
+     0.12
+    ],
+    "swirl": [
+     -0.4,
+     0.4
+    ],
+    "colors": [
+     "#d9ff7a",
+     "#f6ffb0",
+     "#b6f542"
+    ],
+    "glow": true,
+    "texture": "textures/aura_fireflies.png",
+    "frames": 1
+   }
+  }
+ ],
+ "badge": "badge.png"
+}

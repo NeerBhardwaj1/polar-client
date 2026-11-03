@@ -1,6 +1,15 @@
 {
   "items": [
     {
+      "id": "release-1.0.2",
+      "date": "2026-11-03",
+      "tag": "Update",
+      "title": "Polar Client 1.0.2",
+      "body": "The Cosmetics Update! 80 original capes, wings, hats, back items and auras, most of them animated. Pick yours in the launcher under Cosmetics → Polar wardrobe, and other Polar players see them in game. Polar players now get a snowflake badge next to their name. New Friends page: see who's online and which server they're on, join them in one click or invite them (press Y in game to accept an invite). Your Polar settings, HUD layout and waypoints now sync between your PCs.",
+      "link": "https://github.com/NeerBhardwaj1/polar-client/releases/tag/v1.0.2",
+      "linkLabel": "Release notes"
+    },
+    {
       "id": "release-1.0.1",
       "date": "2026-11-02",
       "tag": "Update",

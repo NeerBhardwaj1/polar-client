@@ -18,7 +18,7 @@ const BUILT_IN = {
   Social: ['Chat Timestamps', 'Chat Filter', 'Copy Chat', 'Compact Chat', 'Chat Background', 'Mention Alerts', 'Discord Status'],
   Performance: ['FPS Limiter', 'Frame Time', 'CPU Monitor', 'Stutter Monitor', 'Hide Far Entities'],
   Accessibility: ['Toggle Sprint', 'Screen Shake Control', 'Sensitivity Profiles'],
-  Customization: ['Custom Font'],
+  Customization: ['Custom Font', 'Polar Cosmetics'],
 };
 const CAT_ICON = { HUD: 'i-layers', Combat: 'i-bolt', Visual: 'i-sun', World: 'i-globe', Inventory: 'i-cube', Social: 'i-chat', Performance: 'i-bolt', Accessibility: 'i-user', Customization: 'i-edit' };
 
@@ -182,10 +182,11 @@ function setPage(name) {
   $('page-' + name).scrollTop = 0;
   document.querySelector('.pages').scrollTop = 0;
   if (name === 'servers') { renderServers(); pingAll(); }
-  if (name === 'cosmetics') loadProfile();
+  if (name === 'cosmetics') openCosmetics();
+  else stopWardrobe();
   if (name === 'browse') openBrowse();
   if (name === 'shots') loadShots();
-  if (name === 'cosmetics') loadSkinLibrary();
+  if (name === 'friends') openFriends();
 }
 document.querySelectorAll('.nav-item').forEach((b) => b.addEventListener('click', () => setPage(b.dataset.page)));
 document.addEventListener('click', (e) => {
@@ -1661,6 +1662,8 @@ function bindSettings() {
   check('customRes', 'customResolution');
   check('closeOnLaunch', 'closeOnLaunch');
   check('discordStatus', 'discordStatus');
+  $('polarSync').checked = s.polarSync !== false;
+  $('polarSync').addEventListener('change', (e) => saveSettings({ polarSync: e.target.checked }));
   if (state.info && !state.info.discord) {
     $('discordStatus').disabled = true;
     $('discordStatus').closest('label').classList.add('disabled');
@@ -1753,7 +1756,9 @@ async function selectAccount(a) {
   state.profile = null;
   renderAccounts();
   toast(`Switched to ${a.name}.${state.running ? ' Use the account card in game to switch there too.' : ''}`);
-  if ($('page-cosmetics').classList.contains('active')) loadProfile();
+  wr.loaded = false;
+  if ($('page-cosmetics').classList.contains('active')) openCosmetics();
+  if ($('page-friends').classList.contains('active')) openFriends();
 }
 async function removeAccount(a) {
   state.accounts = await polar.accounts.remove(a.uuid);
@@ -1798,6 +1803,355 @@ polar.on('accounts:changed', (accounts) => {
   renderAccounts();
   const acc = accounts.accounts.find((a) => a.uuid === accounts.selected);
   if (acc) notify('Account switched in game', acc.name, 'ok');
+});
+
+// ---------------------------------------------------------------- Polar: shared sign-in gate
+const RARITY = { common: 'Common', rare: 'Rare', epic: 'Epic', legendary: 'Legendary' };
+const SLOT_NAMES = { cape: 'cape', wings: 'wings', head: 'hat', back: 'back item', aura: 'aura' };
+const TINTS = ['#ffffff', '#1f1f24', '#ff4f5e', '#ff9a2e', '#ffd23f', '#3fbf74', '#2fd3c1', '#4fa3ff', '#2f4fe6', '#9b5cff', '#ff6fb5', '#8a5a35'];
+
+/** Signs in to the Polar server when needed. Returns the state, or shows why it can't in the gate element. */
+async function polarReady(gateId, bodyId) {
+  const gate = $(gateId);
+  const body = $(bodyId);
+  const show = (title, text, button) => {
+    body.hidden = true;
+    gate.hidden = false;
+    gate.replaceChildren(h('b', { text: title }), h('div', { text }), button || '');
+    return null;
+  };
+  let st;
+  try {
+    st = await polar.online.state();
+  } catch (e) {
+    return show("Couldn't load Polar", e.message);
+  }
+  if (!st.configured) return show("The Polar server isn't set up yet", 'Cosmetics, the Polar badge and friends turn on once the Polar server is running (deploy-server.bat).');
+  if (!st.account) return show('Add an account first', 'Polar cosmetics and friends use your Microsoft account.', h('button', { class: 'btn primary', onclick: () => openModal('accountsModal') }, 'Add an account'));
+  if (st.account.type === 'offline') return show('Polar needs a Microsoft account', "Offline profiles can't sign in to Polar. Switch to your Microsoft account to wear cosmetics and see friends.", h('button', { class: 'btn primary', onclick: () => openModal('accountsModal') }, 'Accounts'));
+  if (!st.signedIn) {
+    show('Signing in to Polar…', `Using ${st.account.name}.`);
+    try {
+      st = await polar.online.signIn();
+    } catch (e) {
+      return show("Couldn't sign in to Polar", e.message, h('button', { class: 'btn primary', onclick: () => polarReady(gateId, bodyId).then((x) => x && (gateId === 'wardrobeGate' ? openWardrobe(true) : openFriends())) }, 'Try again'));
+    }
+  }
+  gate.hidden = true;
+  body.hidden = false;
+  return st;
+}
+
+// ---------------------------------------------------------------- Polar wardrobe (Cosmetics page, first tab)
+const wr = { tab: 'wardrobe', loaded: false, catalog: null, me: null, slot: 'cape', collection: 'all', draft: null, saved: null, viewer: null, skinFor: null };
+const COS_BASE = window.POLAR_COS_BASE || 'polar-cos://cosmetics/'; // the launcher's cosmetics cache (tests point it elsewhere)
+const cosmeticUrl = (rel) => `${COS_BASE}${rel}`;
+const sameLoadout = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+const itemById = (id) => (wr.catalog ? wr.catalog.items.find((i) => i.id === id) : null);
+
+function openCosmetics() {
+  document.querySelectorAll('#cosTabs button').forEach((b) => b.classList.toggle('active', b.dataset.tab === wr.tab));
+  $('wardrobeTab').hidden = wr.tab !== 'wardrobe';
+  $('skinTab').hidden = wr.tab !== 'skin';
+  $('reloadProfile').hidden = wr.tab !== 'skin';
+  $('cosSubtitle').textContent = wr.tab === 'wardrobe' ? 'Polar cosmetics that every Polar player can see.' : 'Your skin and capes, saved to your Minecraft account so everyone sees them.';
+  if (wr.tab === 'wardrobe') {
+    openWardrobe();
+  } else {
+    stopWardrobe();
+    loadProfile();
+    loadSkinLibrary();
+  }
+}
+document.querySelectorAll('#cosTabs button').forEach((b) => b.addEventListener('click', () => {
+  wr.tab = b.dataset.tab;
+  openCosmetics();
+}));
+
+function stopWardrobe() {
+  if (wr.viewer) wr.viewer.stop();
+}
+
+async function openWardrobe(force) {
+  const st = await polarReady('wardrobeGate', 'wardrobe');
+  if (!st) return stopWardrobe();
+  if (!wr.loaded || force) {
+    try {
+      const [catalog, me] = await Promise.all([polar.online.catalog(), polar.online.me()]);
+      wr.catalog = catalog;
+      wr.me = me;
+      wr.saved = { slots: me.loadout.slots || {}, hideBadge: Boolean(me.loadout.hideBadge) };
+      wr.draft = structuredClone(wr.saved);
+      wr.loaded = true;
+    } catch (e) {
+      $('wardrobe').hidden = true;
+      $('wardrobeGate').hidden = false;
+      $('wardrobeGate').replaceChildren(h('b', { text: "Couldn't load the wardrobe" }), h('div', { text: e.message }),
+        h('button', { class: 'btn primary', onclick: () => openWardrobe(true) }, 'Try again'));
+      return;
+    }
+  }
+  if (!wr.viewer) {
+    wr.viewer = window.PolarCosmetics3D.create($('wrCanvas'), { baseUrl: COS_BASE, yaw: 200, pitch: 8 });
+  }
+  await wardrobeSkin();
+  renderWardrobe();
+  wr.viewer.start();
+}
+
+/** The player's own skin on the model (falls back to a plain one). */
+async function wardrobeSkin() {
+  const current = state.accounts.selected;
+  if (wr.skinFor === current) return;
+  wr.skinFor = current;
+  let skin = 'assets/mannequin.png', slim = false;
+  try {
+    if (!state.profile || state.profile.id !== current) state.profile = await polar.profile.get();
+    if (state.profile && state.profile.skin && state.profile.skin.data) {
+      skin = state.profile.skin.data;
+      slim = state.profile.skin.variant === 'SLIM';
+    }
+  } catch {
+    // no skin: the plain model
+  }
+  await wr.viewer.setSkin(skin, slim);
+}
+
+function viewerLoadout() {
+  const out = {};
+  for (const [slot, v] of Object.entries(wr.draft.slots)) {
+    const it = itemById(v.id);
+    if (it) out[slot] = { ...it, color: v.color || it.defaultColor };
+  }
+  return out;
+}
+
+function frameFor(slot) {
+  if (slot === 'head') return { yaw: 25, pitch: 12, zoom: 1.9, targetY: 1.72 };
+  if (slot === 'aura') return { yaw: 200, pitch: 10, zoom: 0.85, targetY: 1.0 };
+  if (slot === 'wings') return { yaw: 205, pitch: 8, zoom: 0.95, targetY: 1.15 };
+  return { yaw: 200, pitch: 8, zoom: 1.05, targetY: 1.0 };
+}
+
+function renderWardrobe() {
+  const owned = new Set(wr.me.owned || []);
+  const items = wr.catalog.items.filter((i) => i.type === wr.slot);
+  const collections = (wr.catalog.collections || []).filter((c) => items.some((i) => i.collection === c.id));
+  if (wr.collection !== 'all' && !collections.some((c) => c.id === wr.collection)) wr.collection = 'all';
+  document.querySelectorAll('#wrSlots button').forEach((b) => b.classList.toggle('active', b.dataset.slot === wr.slot));
+  $('wrCollections').replaceChildren(
+    h('button', { class: `chip${wr.collection === 'all' ? ' on' : ''}`, onclick: () => { wr.collection = 'all'; renderWardrobe(); } }, 'All'),
+    ...collections.map((c) => h('button', { class: `chip${wr.collection === c.id ? ' on' : ''}`, onclick: () => { wr.collection = c.id; renderWardrobe(); } }, c.name)));
+  const shown = items.filter((i) => wr.collection === 'all' || i.collection === wr.collection);
+  const worn = wr.draft.slots[wr.slot];
+  const none = h('button', { class: `wr-item none${worn ? '' : ' on'}`, onclick: () => equip(null) },
+    h('div', { class: 'wr-thumb' }, icon('i-close')), h('div', { class: 'wr-name', text: `No ${SLOT_NAMES[wr.slot]}` }));
+  $('wrGrid').replaceChildren(none, ...shown.map((it) => {
+    const locked = it.special && !owned.has(it.id);
+    return h('button', { class: `wr-item r-${it.rarity}${worn && worn.id === it.id ? ' on' : ''}${locked ? ' locked' : ''}`, title: it.description || it.name, onclick: () => equip(it) },
+      h('div', { class: 'wr-thumb' }, h('img', { src: cosmeticUrl(`thumbs/${it.id}.png`), alt: '', loading: 'lazy' }), locked ? h('span', { class: 'wr-lock' }, icon('i-lock')) : null),
+      h('div', { class: 'wr-name', text: it.name }),
+      h('div', { class: 'wr-rarity' }, it.special ? h('span', { class: 'wr-special', text: 'Special' }) : null, RARITY[it.rarity] || ''));
+  }));
+  // colour picker for tintable items
+  const wornItem = worn && itemById(worn.id);
+  $('wrTint').hidden = !(wornItem && wornItem.tint);
+  if (wornItem && wornItem.tint) {
+    const cur = (worn.color || wornItem.defaultColor || '#ffffff').toLowerCase();
+    const picker = h('input', { type: 'color', value: cur, title: 'Any colour' });
+    picker.addEventListener('input', () => setTint(picker.value));
+    $('wrTint').replaceChildren(h('span', { class: 'muted', text: `${wornItem.name} colour` }),
+      ...TINTS.map((c) => h('button', { class: `swatch${c === cur ? ' on' : ''}`, style: `background:${c}`, title: c, onclick: () => setTint(c) })), picker);
+  }
+  $('wrBadge').checked = !wr.draft.hideBadge;
+  const dirty = !sameLoadout(wr.draft, wr.saved);
+  $('wrSave').disabled = !dirty;
+  $('wrUndo').disabled = !dirty;
+  wr.viewer.set(frameFor(wr.slot));
+  wr.viewer.setLoadout(viewerLoadout());
+}
+
+function equip(it) {
+  if (!it || (wr.draft.slots[wr.slot] && wr.draft.slots[wr.slot].id === it.id)) {
+    delete wr.draft.slots[wr.slot];
+  } else {
+    if (it.special && !(wr.me.owned || []).includes(it.id)) {
+      toast(`${it.name} is a special cosmetic. You get it from the Polar team or with a code. Here's a preview.`, 'info', 6000);
+      wr.viewer.setLoadout({ ...viewerLoadout(), [wr.slot]: it });
+      return;
+    }
+    wr.draft.slots[wr.slot] = it.tint ? { id: it.id, color: it.defaultColor } : { id: it.id };
+  }
+  renderWardrobe();
+}
+
+function setTint(color) {
+  const worn = wr.draft.slots[wr.slot];
+  if (!worn) return;
+  worn.color = color.toLowerCase();
+  clearTimeout(wr.tintTimer);
+  wr.viewer.setLoadout(viewerLoadout());
+  wr.tintTimer = setTimeout(renderWardrobe, 120);
+}
+
+document.querySelectorAll('#wrSlots button').forEach((b) => b.addEventListener('click', () => {
+  wr.slot = b.dataset.slot;
+  renderWardrobe();
+}));
+document.querySelectorAll('#wrPose button').forEach((b) => b.addEventListener('click', () => {
+  document.querySelectorAll('#wrPose button').forEach((x) => x.classList.toggle('active', x === b));
+  if (wr.viewer) wr.viewer.set({ walking: Number(b.dataset.walk) });
+}));
+$('wrBadge').addEventListener('change', (e) => {
+  wr.draft.hideBadge = !e.target.checked;
+  renderWardrobe();
+});
+$('wrUndo').addEventListener('click', () => {
+  wr.draft = structuredClone(wr.saved);
+  renderWardrobe();
+});
+$('wrSave').addEventListener('click', async () => {
+  $('wrSave').disabled = true;
+  try {
+    const r = await polar.online.saveLoadout(wr.draft);
+    wr.saved = { slots: r.loadout.slots, hideBadge: r.loadout.hideBadge };
+    wr.draft = structuredClone(wr.saved);
+    toast('Outfit saved. Polar players see it next time they spot you.', 'ok');
+  } catch (e) {
+    toast(e.message, 'error', 7000);
+  }
+  renderWardrobe();
+});
+$('wrRedeem').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const code = $('wrCode').value.trim();
+  if (!code) return;
+  try {
+    const r = await polar.online.redeem(code);
+    $('wrCode').value = '';
+    wr.me = await polar.online.me();
+    const it = itemById(r.item);
+    toast(`You got ${r.name}! It's in your wardrobe now.`, 'ok', 7000);
+    notify('Cosmetic unlocked', r.name, 'ok');
+    if (it) {
+      wr.slot = it.type;
+      wr.draft.slots[it.type] = it.tint ? { id: it.id, color: it.defaultColor } : { id: it.id };
+    }
+    renderWardrobe();
+  } catch (err) {
+    toast(err.message, 'error', 7000);
+  }
+});
+
+// ---------------------------------------------------------------- friends
+const fr = { data: null, timer: null };
+
+function whereText(f) {
+  if (!f.online) return f.lastSeen ? `Offline · last seen ${timeAgo(f.lastSeen)}` : 'Offline';
+  const w = f.where || {};
+  if (w.state === 'server' && w.server) return `Playing on ${w.server}`;
+  if (w.state === 'singleplayer') return 'In singleplayer';
+  if (w.state === 'menu') return 'In the game menus';
+  if (w.state === 'launcher') return 'In the launcher';
+  return 'Online';
+}
+
+async function openFriends() {
+  clearInterval(fr.timer);
+  const st = await polarReady('friendsGate', 'friendsBody');
+  if (!st) return;
+  await refreshFriends();
+  fr.timer = setInterval(() => {
+    if ($('page-friends').classList.contains('active')) refreshFriends();
+    else clearInterval(fr.timer);
+  }, 30000);
+}
+
+async function refreshFriends(data) {
+  try {
+    fr.data = data || (await polar.online.friends());
+  } catch (e) {
+    toast(e.message, 'error');
+    return;
+  }
+  const playing = await polar.online.playing().catch(() => null);
+  renderFriends(playing);
+}
+
+function renderFriends(playing) {
+  const d = fr.data;
+  $('friendsBadge').hidden = !d.incoming.length;
+  $('friendsBadge').textContent = d.incoming.length;
+  $('friendReqPanel').hidden = !d.incoming.length && !d.outgoing.length;
+  const act = (fn, okText) => async () => {
+    try {
+      await refreshFriends(await fn());
+      if (okText) toast(okText, 'ok');
+    } catch (e) {
+      toast(e.message, 'error', 7000);
+    }
+  };
+  $('friendReqs').replaceChildren(
+    ...d.incoming.map((f) => h('div', { class: 'friend-row' },
+      h('img', { src: `https://mc-heads.net/avatar/${f.uuid}/64`, alt: '' }),
+      h('div', { class: 'grow' }, h('b', { text: f.name }), h('small', { text: 'wants to be your friend' })),
+      h('button', { class: 'btn primary small', onclick: act(() => polar.online.acceptFriend(f.uuid), `You and ${f.name} are now friends.`) }, 'Accept'),
+      h('button', { class: 'btn ghost small', onclick: act(() => polar.online.removeFriend(f.uuid)) }, 'Decline'))),
+    ...d.outgoing.map((f) => h('div', { class: 'friend-row' },
+      h('img', { src: `https://mc-heads.net/avatar/${f.uuid}/64`, alt: '' }),
+      h('div', { class: 'grow' }, h('b', { text: f.name }), h('small', { text: 'request sent' })),
+      h('button', { class: 'btn ghost small', onclick: act(() => polar.online.removeFriend(f.uuid)) }, 'Cancel'))));
+  const online = d.friends.filter((f) => f.online).length;
+  $('friendCount').textContent = d.friends.length ? `${online} of ${d.friends.length} online` : '';
+  $('friendList').replaceChildren(...(d.friends.length ? d.friends.map((f) => {
+    const server = f.online && f.where && f.where.state === 'server' ? f.where.server : null;
+    return h('div', { class: `friend-row${f.online ? ' online' : ''}` },
+      h('div', { class: 'friend-head' }, h('img', { src: `https://mc-heads.net/avatar/${f.uuid}/64`, alt: '' }), h('span', { class: 'presence' })),
+      h('div', { class: 'grow' }, h('b', { text: f.name }), h('small', { text: whereText(f) })),
+      server && !state.running ? h('button', { class: 'btn primary small', onclick: () => launch(server, server) }, icon('i-play'), 'Join') : null,
+      f.online && playing ? h('button', { class: 'btn ghost small', onclick: act(async () => { await polar.online.invite(f.uuid); return fr.data; }, `Invited ${f.name} to ${playing}.`) }, 'Invite') : null,
+      h('button', { class: 'btn ghost small danger-text', onclick: () => {
+        if (confirm(`Remove ${f.name} from your friends?`)) act(() => polar.online.removeFriend(f.uuid), `Removed ${f.name}.`)();
+      } }, 'Remove'));
+  }) : [h('div', { class: 'empty-state small' }, h('b', { text: 'No friends yet' }), h('div', { text: 'Add friends by their Minecraft name. They need to have signed in to Polar once.' }))]));
+}
+
+$('friendAdd').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const name = $('friendName').value.trim();
+  if (!name) return;
+  try {
+    const r = await polar.online.addFriend(name);
+    $('friendName').value = '';
+    toast(r.message || 'Friend request sent.', 'ok');
+    await refreshFriends(r);
+  } catch (err) {
+    toast(err.message, 'error', 7000);
+  }
+});
+
+/** A toast with a button (for invites). */
+function actionToast(message, label, onClick, ms = 15000) {
+  const el = h('div', { class: 'toast info action' }, h('span', { text: message }),
+    h('button', { class: 'btn primary small', onclick: () => { el.remove(); onClick(); } }, label));
+  $('toasts').append(el);
+  setTimeout(() => el.remove(), ms);
+}
+
+polar.on('polar:event', (msg) => {
+  if (msg.type === 'invite' && msg.from) {
+    notify(`${msg.from.name} invited you`, `to ${msg.server}`, 'info');
+    if (!state.running) actionToast(`${msg.from.name} invited you to ${msg.server}`, 'Join', () => launch(msg.server, msg.server));
+  } else if (msg.type === 'friends' && msg.from) {
+    if (msg.event === 'request') {
+      notify('Friend request', `${msg.from.name} wants to be your friend`, 'info');
+      toast(`${msg.from.name} sent you a friend request.`);
+    } else if (msg.event === 'accepted') {
+      toast(`${msg.from.name} accepted your friend request.`, 'ok');
+    }
+    if ($('page-friends').classList.contains('active')) refreshFriends();
+    else polar.online.friends().then((d) => { fr.data = d; $('friendsBadge').hidden = !d.incoming.length; $('friendsBadge').textContent = d.incoming.length; }).catch(() => {});
+  }
 });
 
 // ---------------------------------------------------------------- footer
@@ -1847,6 +2201,12 @@ async function checkServices() {
   }
   checkServices();
   setInterval(checkServices, 5 * 60 * 1000);
+  // friend requests waiting: a badge on Friends
+  polar.online.state().then((st) => (st.signedIn ? polar.online.friends() : null)).then((d) => {
+    if (!d) return;
+    $('friendsBadge').hidden = !d.incoming.length;
+    $('friendsBadge').textContent = d.incoming.length;
+  }).catch(() => {});
   loadNews();
   setTimeout(checkLauncherUpdate, 4000);
   setTimeout(() => checkModUpdates(), 6000);

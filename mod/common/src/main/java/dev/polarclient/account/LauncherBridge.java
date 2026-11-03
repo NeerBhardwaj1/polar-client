@@ -186,6 +186,43 @@ public final class LauncherBridge {
 		});
 	}
 
+	/**
+	 * A JSON call to the launcher's Polar endpoints (/polar/state, /polar/players, /polar/events), on the caller's
+	 * thread. Throws IllegalStateException with a readable message when it fails.
+	 */
+	public static JsonObject polar(String method, String path, String body, int timeoutMs) {
+		if (!available()) throw new IllegalStateException("Not started from the Polar launcher");
+		return request(method, path, body, timeoutMs);
+	}
+
+	/** A cosmetics file kept by the launcher (catalog.json, models/..., textures/...), on the caller's thread. */
+	public static byte[] polarFile(String path, int timeoutMs) {
+		if (!available()) throw new IllegalStateException("Not started from the Polar launcher");
+		try {
+			HttpURLConnection c = (HttpURLConnection) new URL(BASE + "/polar/file?path=" + java.net.URLEncoder.encode(path, "UTF-8")).openConnection();
+			c.setConnectTimeout(3000);
+			c.setReadTimeout(timeoutMs);
+			c.setRequestProperty("x-polar-token", SECRET);
+			int status = c.getResponseCode();
+			InputStream in = status >= 400 ? c.getErrorStream() : c.getInputStream();
+			if (in == null) throw new IllegalStateException("No reply");
+			ByteArrayOutputStream b = new ByteArrayOutputStream();
+			try {
+				byte[] buf = new byte[16384];
+				int n;
+				while ((n = in.read(buf)) > 0) b.write(buf, 0, n);
+			} finally {
+				in.close();
+			}
+			if (status != 200) throw new IllegalStateException("The launcher couldn't get " + path + " (" + status + ")");
+			return b.toByteArray();
+		} catch (IllegalStateException e) {
+			throw e;
+		} catch (Exception e) {
+			throw new IllegalStateException("Couldn't reach the Polar launcher.");
+		}
+	}
+
 	@SuppressWarnings("deprecation")
 	private static JsonObject request(String method, String path, String body, int timeoutMs) {
 		int status;

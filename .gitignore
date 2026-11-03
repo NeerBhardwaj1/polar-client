@@ -25,3 +25,11 @@ tools/mcref/
 # editor settings
 .vscode/
 .idea/
+
+# the Polar server (deploy-server.bat)
+server/node_modules/
+server/.wrangler/
+server/admin-password.txt
+
+# Python caches (tools/cosmetics)
+__pycache__/

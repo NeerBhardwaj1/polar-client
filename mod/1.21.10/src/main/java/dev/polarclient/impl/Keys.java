@@ -27,6 +27,7 @@ public final class Keys {
 		add(PolarKey.ADD_WAYPOINT, InputConstants.KEY_B, category);
 		add(PolarKey.WAYPOINTS, InputConstants.UNKNOWN.getValue(), category);
 		add(PolarKey.HITBOXES, InputConstants.KEY_H, category);
+		add(PolarKey.JOIN_INVITE, InputConstants.KEY_Y, category);
 	}
 
 	private static void add(PolarKey key, int defaultKey, KeyMapping.Category category) {

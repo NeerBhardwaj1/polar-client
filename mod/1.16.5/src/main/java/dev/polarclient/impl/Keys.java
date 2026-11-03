@@ -25,6 +25,7 @@ public final class Keys {
 		add(PolarKey.ADD_WAYPOINT, GLFW.GLFW_KEY_B);
 		add(PolarKey.WAYPOINTS, GLFW.GLFW_KEY_UNKNOWN);
 		add(PolarKey.HITBOXES, GLFW.GLFW_KEY_H);
+		add(PolarKey.JOIN_INVITE, GLFW.GLFW_KEY_Y);
 	}
 
 	private static void add(PolarKey key, int defaultKey) {

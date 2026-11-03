@@ -71,6 +71,32 @@ You need [Git for Windows](https://git-scm.com/download/win) (or `winget install
 - Every upload also runs the **build** workflow, which checks that everything still builds; its installers are under the run's *Artifacts*. Edits that only touch `news.json`, Markdown files, `docs/` or `branding/` skip it.
 - A release only goes out if the Windows installer built. A macOS or Linux build failing doesn't stop it.
 
+## The Polar server: cosmetics, the badge, friends and settings sync
+
+Polar's online features run on a small server of your own on **Cloudflare's free plan** (Workers + a Durable Object with its built-in database; free covers 100,000 requests a day, plenty for a growing client). The code is in `server/`.
+
+- **Cosmetics.** 80 original cosmetics: 30 capes (most of them animated, HD), 10 wings, 19 hats, 8 back items and 13 auras, in collections (Polar, Celestial, Inferno, Cosmic, Nature, Neon, Royal, Cute, Classic, Special). Players pick theirs in the launcher (**Cosmetics → Polar wardrobe**) with a 3D preview; some take a colour. Other Polar players see them in game on all five Minecraft versions.
+- **Free and special.** Everything is free except the *Special* collection (Founder, Supporter, Polar Staff, Creator), which you hand out from the admin page or with codes.
+- **The Polar badge.** A small snowflake in front of the names of players on Polar, in name tags and the player list (players can hide theirs in the wardrobe).
+- **Friends.** Add friends by Minecraft name in the launcher's **Friends** page, see who's online and which server they're on, join them with one click, and invite them to your server. Invites also show in game: press **Y** (Controls → Polar Client) to join.
+- **Settings sync.** Your Polar menu settings, HUD layout and waypoints follow your Microsoft account to other PCs (Settings → *Sync my Polar settings between PCs*).
+
+Signing in uses Minecraft's own server check: the launcher tells Mojang the player is joining a one-time "server" and the Polar server asks Mojang whether that happened, so Minecraft logins never reach the Polar server. Only Microsoft accounts can use Polar's online features.
+
+**Set it up (once):**
+
+1. Make a free account at <https://dash.cloudflare.com/sign-up>. If Cloudflare asks for a *workers.dev* subdomain (Workers & Pages), pick one; it becomes part of the server's address.
+2. Double-click **`deploy-server.bat`**. The first time, your browser opens so you can allow Cloudflare's tool (wrangler) to use your account. It uploads the server, sets up its secret keys, prints the server's address and the admin password (also saved in `server/admin-password.txt`, which is never uploaded to GitHub), and points the launcher at the server.
+3. Run **`publish.bat`** and then **`release.bat`** so players get a launcher that knows the server.
+
+Run `deploy-server.bat` again whenever you change the server or the cosmetics (sign-ins and data are kept). `deploy-server.bat --new-admin-password` makes a new admin password.
+
+**Admin page:** `https://<your server>/admin`, with the admin password. It shows how many players use Polar and how many are online, looks up a player by name to give or take back special cosmetics or block them, and makes codes (one or many, each usable once or many times, with a note) that players redeem in the wardrobe.
+
+**Making cosmetics:** they're drawn in code in `tools/cosmetics/` (`capes.py`, `wings.py`, `heads.py`, `backs.py`, `auras.py`; needs Python with numpy, scipy and Pillow). `python tools/cosmetics/build.py` builds every texture, model and the catalogue into `server/public/cosmetics/`; `python tools/cosmetics/thumbs.py` (needs Playwright) renders the wardrobe thumbnails; `tools/cosmetics/preview/index.html` shows them in 3D (serve the repository folder, e.g. `python -m http.server`, and open `/tools/cosmetics/preview/index.html?items=cape_aurora,wings_frost`). Then run `deploy-server.bat`.
+
+**Trying it without Cloudflare:** `node server/test/dev-server.mjs` runs the server locally on port 8787 with a fake Mojang (admin password `dev-admin`). The server's tests: `cd server && npm test`.
+
 ## Build locally
 
 **Mod** — needs JDK 25 (e.g. [Microsoft Build of OpenJDK](https://learn.microsoft.com/java/openjdk/download)); it builds the jars for the older versions too:
@@ -88,7 +114,7 @@ Open a version's folder (e.g. `mod/26.3`) in IntelliJ IDEA 2025.3 or newer as a 
 ```bash
 cd launcher
 npm install
-npm test                 # 51 tests (versions, accounts, servers, Modrinth, packs, skins, News, Discord, crash helper)
+npm test                 # 58 tests (versions, accounts, servers, Modrinth, packs, skins, News, Discord, crash helper, Polar server)
 npm run bundle-mod       # copies each version's built mod jar into the launcher
 npm start                # run the launcher
 npm run dist             # build an installer for your OS into dist/
@@ -150,7 +176,7 @@ The News on the launcher's home page comes from `news.json` at the top of this r
 
 ## Ideas for v2
 
-Cosmetics (capes, wings) with a small backend so players see each other's, a Polar badge next to other Polar users' names, a world map to go with the minimap, and a 1.8-style animations mod.
+A world map to go with the minimap, a 1.8-style animations mod, emotes, and a friends list inside the in-game Polar menu.
 
 ## Notes
 

@@ -335,4 +335,18 @@ public abstract class Platform {
 
 	/** Swaps the signed-in session for the one from the launcher. Throws with a readable message on failure. */
 	public abstract void switchSession(LauncherBridge.Session session) throws Exception;
+
+	// ---- Polar cosmetics and friends
+
+	/** The ids of the players in the current world (the ones the game knows about, near you). Empty outside a world. */
+	public abstract java.util.List<UUID> worldPlayerIds();
+
+	/** Shows a line in chat for you only (not sent anywhere). Formatting codes (section sign) allowed. */
+	public abstract void chatLine(String text);
+
+	/** Leaves the current world or server (if any) and joins this server address. */
+	public abstract void joinServer(String address);
+
+	/** The key a Polar key bind is set to, as shown in Controls (e.g. "Y"), or null when it isn't bound. */
+	public abstract String polarKeyName(PolarKey key);
 }

@@ -1,0 +1,19 @@
+// Cloudflare settings for the Polar Client server. deploy-server.bat (tools/server.js) uploads it with Wrangler.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "polar-client",
+  "main": "src/index.js",
+  "compatibility_date": "2026-10-15",
+  // the cosmetics' textures and models and the admin page; Cloudflare serves these for free
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": ["/v1/*"]
+  },
+  // one Hub keeps all the data (its own SQLite database) and the live connections
+  "durable_objects": {
+    "bindings": [{ "name": "HUB", "class_name": "Hub" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Hub"] }],
+  "observability": { "enabled": true }
+}
