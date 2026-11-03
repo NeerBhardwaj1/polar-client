@@ -57,6 +57,8 @@ contextBridge.exposeInMainWorld('polar', {
   online: {
     state: () => call('polar:state'),
     signIn: () => call('polar:signIn'),
+    offlineKey: (uuid) => call('polar:offlineKey', uuid),
+    useOfflineKey: (key) => call('polar:useOfflineKey', key),
     me: () => call('polar:me'),
     catalog: () => call('polar:catalog'),
     saveLoadout: (loadout) => call('polar:saveLoadout', loadout),

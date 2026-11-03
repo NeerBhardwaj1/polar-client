@@ -1740,14 +1740,15 @@ function renderAccounts() {
     h('button', { class: 'menu-row', onclick: () => setPage('cosmetics') }, icon('i-shirt'), h('span', { class: 'grow', text: 'Skin & capes' })));
 
   // modal list
-  $('accountList').replaceChildren(...(accounts.length ? accounts.map((a) => h('div', { class: `account-row${a.uuid === selected ? ' selected' : ''}`, onclick: (e) => { if (!e.target.dataset.remove) selectAccount(a); } },
+  $('accountList').replaceChildren(...(accounts.length ? accounts.map((a) => h('div', { class: `account-row${a.uuid === selected ? ' selected' : ''}`, onclick: (e) => { if (!e.target.closest('button')) selectAccount(a); } },
     h('img', { src: avatarUrl(a), alt: '' }),
     h('span', { class: 'name', text: a.name }),
     h('span', { class: `badge-type${a.type === 'offline' ? ' offline' : ''}`, text: a.type === 'offline' ? 'Offline' : 'Microsoft' }),
+    a.type === 'offline' ? h('button', { class: 'key', title: `Copy ${a.name}'s Polar key, to use this profile on Polar from another PC`, onclick: () => copyPolarKey(a) }, icon('i-lock')) : null,
     h('button', { class: 'remove', 'data-remove': a.uuid, text: 'Remove', onclick: () => removeAccount(a) }))) : [h('div', { class: 'empty', text: 'No accounts yet.' })]));
   $('offlineName').disabled = false;
   $('addOffline').disabled = false;
-  $('offlineHint').textContent = 'Plays under any name with the default skin: LAN worlds, singleplayer and offline-mode servers.';
+  $('offlineHint').textContent = 'Plays under any name with the default skin: LAN worlds, singleplayer and offline-mode servers. Polar cosmetics and friends work too.';
 }
 async function selectAccount(a) {
   closeMenus();
@@ -1827,19 +1828,50 @@ async function polarReady(gateId, bodyId) {
     return show("Couldn't load Polar", e.message);
   }
   if (!st.configured) return show("The Polar server isn't set up yet", 'Cosmetics, the Polar badge and friends turn on once the Polar server is running (deploy-server.bat).');
-  if (!st.account) return show('Add an account first', 'Polar cosmetics and friends use your Microsoft account.', h('button', { class: 'btn primary', onclick: () => openModal('accountsModal') }, 'Add an account'));
-  if (st.account.type === 'offline') return show('Polar needs a Microsoft account', "Offline profiles can't sign in to Polar. Switch to your Microsoft account to wear cosmetics and see friends.", h('button', { class: 'btn primary', onclick: () => openModal('accountsModal') }, 'Accounts'));
+  if (!st.account) return show('Add an account first', 'Polar cosmetics and friends work with a Microsoft account or an offline profile.', h('button', { class: 'btn primary', onclick: () => openModal('accountsModal') }, 'Add an account'));
+  const reopen = () => (gateId === 'wardrobeGate' ? openWardrobe(true) : openFriends());
   if (!st.signedIn) {
     show('Signing in to Polar…', `Using ${st.account.name}.`);
     try {
       st = await polar.online.signIn();
     } catch (e) {
-      return show("Couldn't sign in to Polar", e.message, h('button', { class: 'btn primary', onclick: () => polarReady(gateId, bodyId).then((x) => x && (gateId === 'wardrobeGate' ? openWardrobe(true) : openFriends())) }, 'Try again'));
+      return show("Couldn't sign in to Polar", e.message, h('button', { class: 'btn primary', onclick: reopen }, 'Try again'));
     }
+    if (st.taken) return show(`${st.account.name} is taken on Polar`, st.taken, keyForm(reopen));
   }
   gate.hidden = true;
   body.hidden = false;
   return st;
+}
+
+/** Pasting the Polar key of an offline profile from another PC (when this PC can't use the name on Polar). */
+function keyForm(done) {
+  const input = h('input', { type: 'text', placeholder: 'Paste the Polar key from your other PC', spellcheck: 'false', autocomplete: 'off' });
+  const btn = h('button', { class: 'btn primary', type: 'submit' }, 'Use key');
+  return h('form', { class: 'offline-form key-form', onsubmit: async (e) => {
+    e.preventDefault();
+    if (!input.value.trim()) return input.focus();
+    btn.disabled = true;
+    try {
+      await polar.online.useOfflineKey(input.value);
+      toast('Signed in to Polar with your key.', 'ok');
+      done();
+    } catch (err) {
+      toast(err.message, 'error', 8000);
+    } finally {
+      btn.disabled = false;
+    }
+  } }, input, btn);
+}
+
+/** Copies an offline profile's Polar key, to use the same profile on Polar from another PC. */
+async function copyPolarKey(a) {
+  try {
+    await navigator.clipboard.writeText(await polar.online.offlineKey(a.uuid));
+    toast(`Polar key for ${a.name} copied. On your other PC, add the offline profile ${a.name} and paste the key on the Cosmetics page. Keep it private: anyone with it can be ${a.name} on Polar.`, 'ok', 12000);
+  } catch (e) {
+    toast(e.message, 'error');
+  }
 }
 
 // ---------------------------------------------------------------- Polar wardrobe (Cosmetics page, first tab)
@@ -2078,6 +2110,8 @@ async function refreshFriends(data) {
   renderFriends(playing);
 }
 
+const friendName = (f) => h('b', {}, f.name, f.offline ? h('span', { class: 'tag-offline', title: 'Plays with an offline profile, not a Minecraft account', text: 'Offline profile' }) : null);
+
 function renderFriends(playing) {
   const d = fr.data;
   $('friendsBadge').hidden = !d.incoming.length;
@@ -2094,12 +2128,12 @@ function renderFriends(playing) {
   $('friendReqs').replaceChildren(
     ...d.incoming.map((f) => h('div', { class: 'friend-row' },
       h('img', { src: `https://mc-heads.net/avatar/${f.uuid}/64`, alt: '' }),
-      h('div', { class: 'grow' }, h('b', { text: f.name }), h('small', { text: 'wants to be your friend' })),
+      h('div', { class: 'grow' }, friendName(f), h('small', { text: 'wants to be your friend' })),
       h('button', { class: 'btn primary small', onclick: act(() => polar.online.acceptFriend(f.uuid), `You and ${f.name} are now friends.`) }, 'Accept'),
       h('button', { class: 'btn ghost small', onclick: act(() => polar.online.removeFriend(f.uuid)) }, 'Decline'))),
     ...d.outgoing.map((f) => h('div', { class: 'friend-row' },
       h('img', { src: `https://mc-heads.net/avatar/${f.uuid}/64`, alt: '' }),
-      h('div', { class: 'grow' }, h('b', { text: f.name }), h('small', { text: 'request sent' })),
+      h('div', { class: 'grow' }, friendName(f), h('small', { text: 'request sent' })),
       h('button', { class: 'btn ghost small', onclick: act(() => polar.online.removeFriend(f.uuid)) }, 'Cancel'))));
   const online = d.friends.filter((f) => f.online).length;
   $('friendCount').textContent = d.friends.length ? `${online} of ${d.friends.length} online` : '';
@@ -2107,7 +2141,7 @@ function renderFriends(playing) {
     const server = f.online && f.where && f.where.state === 'server' ? f.where.server : null;
     return h('div', { class: `friend-row${f.online ? ' online' : ''}` },
       h('div', { class: 'friend-head' }, h('img', { src: `https://mc-heads.net/avatar/${f.uuid}/64`, alt: '' }), h('span', { class: 'presence' })),
-      h('div', { class: 'grow' }, h('b', { text: f.name }), h('small', { text: whereText(f) })),
+      h('div', { class: 'grow' }, friendName(f), h('small', { text: whereText(f) })),
       server && !state.running ? h('button', { class: 'btn primary small', onclick: () => launch(server, server) }, icon('i-play'), 'Join') : null,
       f.online && playing ? h('button', { class: 'btn ghost small', onclick: act(async () => { await polar.online.invite(f.uuid); return fr.data; }, `Invited ${f.name} to ${playing}.`) }, 'Invite') : null,
       h('button', { class: 'btn ghost small danger-text', onclick: () => {

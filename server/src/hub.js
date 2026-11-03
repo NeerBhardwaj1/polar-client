@@ -3,6 +3,7 @@
 // cosmetics are shown to other Polar players.
 import catalog from './catalog.js';
 import { signToken, readToken, sameSecret, randomHex } from './token.js';
+import { offlineUuid, isOfflineUuid, sha256Hex } from './offline.js';
 
 export const SLOTS = ['cape', 'wings', 'head', 'back', 'aura'];
 let ITEMS = new Map(catalog.items.map((i) => [i.id, i]));
@@ -35,13 +36,16 @@ const SCHEMA = [
   // one row per direction: state is 'friends', 'out' (uuid asked other) or 'in' (other asked uuid)
   `CREATE TABLE IF NOT EXISTS friends (uuid TEXT NOT NULL, other TEXT NOT NULL, state TEXT NOT NULL, created INTEGER NOT NULL,
      PRIMARY KEY (uuid, other))`,
+  // offline profiles: the PC that first used a name keeps it with a secret key (only its SHA-256 is kept here)
+  'CREATE TABLE IF NOT EXISTS offline_keys (uuid TEXT PRIMARY KEY, key_hash TEXT NOT NULL, created INTEGER NOT NULL)',
 ];
 const MAX_FRIENDS = 200;
 
 export class HttpError extends Error {
-  constructor(status, message) {
+  constructor(status, message, extra = null) {
     super(message);
     this.status = status;
+    this.extra = extra;
   }
 }
 
@@ -68,6 +72,8 @@ export function dashed(id) {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
+const offlineFlag = (uuid) => (isOfflineUuid(uuid) ? { offline: true } : {});
+
 export class Hub {
   constructor(ctx, env) {
     this.ctx = ctx;
@@ -83,7 +89,7 @@ export class Hub {
     try {
       return await this.route(request, new URL(request.url));
     } catch (e) {
-      if (e instanceof HttpError) return json({ error: e.message }, e.status);
+      if (e instanceof HttpError) return json({ error: e.message, ...(e.extra || {}) }, e.status);
       console.error(e && e.stack ? e.stack : e);
       return json({ error: 'Server error' }, 500);
     }
@@ -94,6 +100,7 @@ export class Hub {
     if (p === '/v1/health') return json({ ok: true, items: ITEMS.size, configured: Boolean(this.env.TOKEN_SECRET) });
     if (p === '/v1/auth/challenge' && m === 'POST') return this.challenge(request);
     if (p === '/v1/auth/verify' && m === 'POST') return this.verify(request);
+    if (p === '/v1/auth/offline' && m === 'POST') return this.offlineSignIn(request);
     if (p === '/v1/live') return this.live(request, url);
     if (p.startsWith('/v1/admin/')) return this.admin(request, url);
     const me = await this.auth(request.headers.get('Authorization'));
@@ -111,16 +118,16 @@ export class Hub {
     throw new HttpError(404, 'Not found');
   }
 
-  /** Allows `max` calls per minute for a key; throws 429 beyond that. */
-  limit(key, max) {
+  /** Allows `max` calls per `window` ms (a minute) for a key; throws 429 beyond that. */
+  limit(key, max, window = 60000) {
     const now = Date.now();
     let b = this.limits.get(key);
-    if (!b || now - b.start > 60000) {
+    if (!b || now - b.start > window) {
       b = { start: now, n: 0 };
       this.limits.set(key, b);
       if (this.limits.size > 50000) this.limits.clear();
     }
-    if (++b.n > max) throw new HttpError(429, 'Too many requests. Wait a minute.');
+    if (++b.n > max) throw new HttpError(429, window > 60000 ? 'Too many requests. Try again later.' : 'Too many requests. Wait a minute.');
   }
 
   ip(request) {
@@ -167,6 +174,43 @@ export class Hub {
     const expires = now + TOKEN_TTL;
     const token = await signToken(this.secret(), { u: uuid, n: profile.name, e: expires });
     return json({ token, uuid, name: profile.name, expires });
+  }
+
+  /**
+   * Offline profiles have no Minecraft account to ask Mojang about. The launcher makes a random key for each one, and
+   * the first PC to sign in with a name keeps it: later sign-ins with that name need the same key, so nobody else can
+   * be "you" on Polar. The key moves to another PC by copying it (Accounts in the launcher).
+   */
+  async offlineSignIn(request) {
+    const ip = this.ip(request);
+    this.limit(`o:${ip}`, 30);
+    const { name, key } = await body(request);
+    if (!NAME.test(String(name)) || String(name).length < 3) throw new HttpError(400, 'Offline profile names are 3-16 letters, numbers or underscores.');
+    if (!/^[0-9a-f]{64}$/.test(String(key))) throw new HttpError(400, 'Bad sign-in request');
+    const uuid = offlineUuid(name);
+    const hash = await sha256Hex(key);
+    const now = Date.now();
+    const taken = () => new HttpError(409, `${name} is already used on Polar from another PC. If that's you, copy its Polar key from the launcher there (Accounts, the key next to ${name}) and paste it here. Otherwise pick another name.`, { code: 'name-taken' });
+    this.ctx.storage.transactionSync(() => {
+      const row = this.sql.exec('SELECT key_hash FROM offline_keys WHERE uuid = ?', uuid).toArray()[0];
+      if (row) {
+        if (!sameSecret(row.key_hash, hash)) throw taken();
+      } else {
+        // "Steve" and "steve" are different players in Minecraft, but too easy to mix up on Polar
+        const twin = this.sql.exec(`SELECT p.uuid FROM players p JOIN offline_keys k ON k.uuid = p.uuid
+          WHERE p.name = ? COLLATE NOCASE AND p.uuid != ?`, name, uuid).toArray()[0];
+        if (twin) throw taken();
+        this.limit(`on:${ip}`, 20, 3600 * 1000); // new names per hour from one address
+        this.sql.exec('INSERT INTO offline_keys (uuid, key_hash, created) VALUES (?, ?, ?)', uuid, hash, now);
+      }
+      this.sql.exec(`INSERT INTO players (uuid, name, first_seen, last_seen) VALUES (?, ?, ?, ?)
+        ON CONFLICT (uuid) DO UPDATE SET name = excluded.name, last_seen = excluded.last_seen,
+        first_seen = CASE WHEN players.first_seen = 0 THEN excluded.first_seen ELSE players.first_seen END`, uuid, name, now, now);
+    });
+    if (this.player(uuid).banned) throw new HttpError(403, 'This account is blocked from Polar features.');
+    const expires = now + TOKEN_TTL;
+    const token = await signToken(this.secret(), { u: uuid, n: name, e: expires });
+    return json({ token, uuid, name, expires, offline: true });
   }
 
   async auth(header) {
@@ -357,9 +401,9 @@ export class Hub {
     for (const r of rows) {
       if (r.state === 'friends') {
         const online = this.online(r.uuid);
-        out.friends.push({ uuid: r.uuid, name: r.name, online, where: online ? this.where(r.uuid) : null, lastSeen: r.lastSeen });
+        out.friends.push({ uuid: r.uuid, name: r.name, online, where: online ? this.where(r.uuid) : null, lastSeen: r.lastSeen, ...offlineFlag(r.uuid) });
       } else {
-        (r.state === 'in' ? out.incoming : out.outgoing).push({ uuid: r.uuid, name: r.name });
+        (r.state === 'in' ? out.incoming : out.outgoing).push({ uuid: r.uuid, name: r.name, ...offlineFlag(r.uuid) });
       }
     }
     out.friends.sort((a, b) => Number(b.online) - Number(a.online));
@@ -375,7 +419,10 @@ export class Hub {
     this.limit(`f:${me.uuid}`, 20);
     const name = String(b.name || '').trim();
     if (!NAME.test(name)) throw new HttpError(400, 'Type a Minecraft name.');
-    const them = this.sql.exec('SELECT uuid, name, first_seen, banned FROM players WHERE name = ? COLLATE NOCASE', name).toArray()[0];
+    // a Minecraft account and an offline profile can share a name: prefer the same kind as yours, then real accounts
+    const mine = isOfflineUuid(me.uuid);
+    const them = this.sql.exec('SELECT uuid, name, first_seen, banned FROM players WHERE name = ? COLLATE NOCASE AND first_seen > 0', name).toArray()
+      .sort((a, b) => Number(isOfflineUuid(a.uuid) !== mine) - Number(isOfflineUuid(b.uuid) !== mine))[0];
     if (!them || !them.first_seen) throw new HttpError(404, `${name} hasn't used Polar yet. Ask them to sign in to the Polar launcher first.`);
     if (them.uuid === me.uuid) throw new HttpError(400, "That's you!");
     const st = this.state(me.uuid, them.uuid);
@@ -480,6 +527,7 @@ export class Hub {
     const online = new Set(this.ctx.getWebSockets().map((ws) => (ws.deserializeAttachment() || {}).uuid).filter(Boolean));
     return {
       players: one('SELECT COUNT(*) FROM players WHERE first_seen > 0'),
+      offline: one('SELECT COUNT(*) FROM offline_keys'),
       online: online.size,
       today: one(`SELECT COUNT(*) FROM players WHERE last_seen > ${Date.now() - 86400000}`),
       grants: one('SELECT COUNT(*) FROM grants'),
@@ -495,7 +543,9 @@ export class Hub {
     const uuid = dashed(s);
     if (uuid) return this.player(uuid) || { uuid, name: s, first_seen: 0, last_seen: 0, banned: 0 };
     if (!NAME.test(s)) throw new HttpError(400, 'Type a Minecraft name or id.');
-    const known = this.sql.exec('SELECT uuid, name, first_seen, last_seen, banned FROM players WHERE name = ? COLLATE NOCASE', s).toArray()[0];
+    // real Minecraft accounts first; an offline profile with the same name can be picked by its id
+    const known = this.sql.exec(`SELECT uuid, name, first_seen, last_seen, banned FROM players WHERE name = ? COLLATE NOCASE
+      ORDER BY substr(uuid, 15, 1) = '3', first_seen = 0`, s).toArray()[0];
     if (known) return known;
     const res = await fetch(`https://api.minecraftservices.com/minecraft/profile/lookup/name/${encodeURIComponent(s)}`);
     if (res.status !== 200) throw new HttpError(404, `No Minecraft account is called ${s}.`);
@@ -509,7 +559,7 @@ export class Hub {
   async adminPlayer(q) {
     const p = await this.resolve(q);
     const grants = this.sql.exec('SELECT item, source, created FROM grants WHERE uuid = ? ORDER BY created DESC', p.uuid).toArray();
-    return { uuid: p.uuid, name: p.name, signedIn: p.first_seen > 0, lastSeen: p.last_seen, banned: Boolean(p.banned), online: this.online(p.uuid), grants, loadout: this.loadout(p.uuid) };
+    return { uuid: p.uuid, name: p.name, offline: isOfflineUuid(p.uuid), signedIn: p.first_seen > 0, lastSeen: p.last_seen, banned: Boolean(p.banned), online: this.online(p.uuid), grants, loadout: this.loadout(p.uuid) };
   }
 
   async adminGrant(b, give) {

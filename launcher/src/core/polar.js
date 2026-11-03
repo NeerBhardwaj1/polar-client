@@ -5,7 +5,10 @@
 //
 // Signing in never sends the Minecraft login to the Polar server: the launcher tells Mojang "this player joins server
 // <challenge>" (what every Minecraft server does), and the Polar server asks Mojang whether that happened.
+// Offline profiles have no Minecraft login: each gets a random key, kept on this PC, and the first PC to use a name on
+// Polar keeps it. The key can be copied to another PC to use the same offline profile there.
 const fs = require('node:fs');
+const crypto = require('node:crypto');
 const path = require('node:path');
 
 const UUID = /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i;
@@ -14,6 +17,7 @@ const LOOKUP_TTL = 60 * 1000;
 const PING_EVERY = 25 * 1000;
 const SYNC_FILES = ['polarclient.json', 'polarclient-waypoints.json'];
 const MAX_SYNC = 190 * 1024;
+const KEY = /^[0-9a-f]{64}$/;
 
 const dashed = (id) => {
   const hex = String(id || '').toLowerCase().replace(/-/g, '');
@@ -21,9 +25,10 @@ const dashed = (id) => {
 };
 
 class PolarError extends Error {
-  constructor(message, status = 0) {
+  constructor(message, status = 0, code = null) {
     super(message);
     this.status = status;
+    this.code = code;
   }
 }
 
@@ -33,15 +38,17 @@ class PolarError extends Error {
  *   cacheDir         where cosmetics files are kept
  *   account()        async: the selected account, with a fresh Minecraft token ({ uuid, name, type, mcToken })
  *   tokens           { get(uuid) -> {token, expires} | null, set(uuid, value|null) } (kept encrypted by the store)
+ *   keys             { get(uuid) -> key | null, set(uuid, key|null) }: offline profiles' Polar keys (encrypted too)
  *   fetch, WebSocket the network (injected for tests)
  *   onEvent(msg)     live messages from the server (friend requests, invites) and connection changes
  */
 class PolarService {
-  constructor({ serverUrl, cacheDir, account, tokens, fetch = globalThis.fetch, WebSocket = globalThis.WebSocket, onEvent = () => {}, now = Date.now }) {
+  constructor({ serverUrl, cacheDir, account, tokens, keys = { get: () => null, set: () => {} }, fetch = globalThis.fetch, WebSocket = globalThis.WebSocket, onEvent = () => {}, now = Date.now }) {
     this.url = String(serverUrl || '').replace(/\/+$/, '');
     this.cacheDir = cacheDir;
     this.account = account;
     this.tokens = tokens;
+    this.keys = keys;
     this.fetch = fetch;
     this.WebSocket = WebSocket;
     this.onEvent = onEvent;
@@ -85,17 +92,17 @@ class PolarService {
     } catch {
       data = null;
     }
-    if (!res.ok) throw new PolarError((data && data.error) || `The Polar server answered ${res.status}.`, res.status);
+    if (!res.ok) throw new PolarError((data && data.error) || `The Polar server answered ${res.status}.`, res.status, (data && data.code) || null);
     return data;
   }
 
   // ---------------------------------------------------------------- signing in
 
-  /** The Polar session of the selected account: signs in when there's no valid token. null for offline accounts. */
+  /** The Polar session of the selected account: signs in when there's no valid token. null without an account. */
   async session({ signIn = true } = {}) {
     if (!this.configured) return null;
     const acc = await this.account();
-    if (!acc || acc.type === 'offline') return null;
+    if (!acc) return null;
     const uuid = dashed(acc.uuid);
     const saved = this.tokens.get(uuid);
     if (saved && saved.token && saved.expires - this.now() > 24 * 3600 * 1000) return { token: saved.token, uuid, name: saved.name || acc.name };
@@ -104,7 +111,8 @@ class PolarService {
   }
 
   async signIn(acc) {
-    if (!acc || acc.type === 'offline') throw new PolarError('Polar cosmetics and friends need a Microsoft account.', 400);
+    if (!acc) throw new PolarError('Add an account to use Polar cosmetics and friends.', 400);
+    if (acc.type === 'offline') return this.signInOffline(acc);
     const { challenge } = await this.request('POST', '/v1/auth/challenge');
     let res;
     try {
@@ -124,6 +132,42 @@ class PolarService {
     return { token: v.token, uuid, name: v.name };
   }
 
+  /** An offline profile's Polar key: made the first time it's needed, then kept on this PC. */
+  offlineKey(acc) {
+    const uuid = dashed(acc.uuid);
+    let key = this.keys.get(uuid);
+    if (!KEY.test(String(key || ''))) {
+      key = crypto.randomBytes(32).toString('hex');
+      this.keys.set(uuid, key);
+    }
+    return key;
+  }
+
+  async signInOffline(acc) {
+    const v = await this.request('POST', '/v1/auth/offline', { body: { name: acc.name, key: this.offlineKey(acc) } });
+    const uuid = dashed(v.uuid);
+    this.tokens.set(uuid, { token: v.token, expires: v.expires, name: v.name });
+    return { token: v.token, uuid, name: v.name };
+  }
+
+  /** Uses the Polar key copied from another PC for this offline profile; keeps the old key if the new one doesn't work. */
+  async useOfflineKey(acc, pasted) {
+    if (!acc || acc.type !== 'offline') throw new PolarError('Polar keys are for offline profiles. Select the offline profile first.', 400);
+    const key = String(pasted || '').toLowerCase().replace(/[^0-9a-f]/g, '');
+    if (!KEY.test(key)) throw new PolarError("That isn't a Polar key. Copy it from Accounts in the launcher on your other PC (the key next to the profile).", 400);
+    const uuid = dashed(acc.uuid);
+    const old = this.keys.get(uuid);
+    this.keys.set(uuid, key);
+    this.tokens.set(uuid, null);
+    try {
+      return await this.signInOffline(acc);
+    } catch (e) {
+      this.keys.set(uuid, old || null);
+      if (e.code === 'name-taken') throw new PolarError(`That key isn't the one ${acc.name} uses on Polar. Copy it again on the PC where ${acc.name} works.`, 409, 'wrong-key');
+      throw e;
+    }
+  }
+
   signOut(uuid) {
     this.tokens.set(dashed(uuid), null);
     if (this.wsUuid === dashed(uuid)) this.disconnect();
@@ -133,7 +177,7 @@ class PolarService {
   async api(method, p, body) {
     this.need();
     let s = await this.session();
-    if (!s) throw new PolarError('Polar cosmetics and friends need a Microsoft account.', 400);
+    if (!s) throw new PolarError('Add an account to use Polar cosmetics and friends.', 400);
     try {
       return await this.request(method, p, { body, token: s.token });
     } catch (e) {
@@ -155,6 +199,7 @@ class PolarService {
       s = await this.session();
     } catch (e) {
       this.onEvent({ type: 'status', online: false, error: e.message });
+      if (e.code === 'name-taken') return undefined; // trying again won't help: the Cosmetics page explains it
       return this.scheduleReconnect();
     }
     if (!s) return this.disconnect(true);

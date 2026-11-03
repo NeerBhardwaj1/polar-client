@@ -56,6 +56,11 @@ const polar = new PolarService({
     return selected ? freshAccount(selected) : null;
   },
   tokens: { get: (uuid) => store.getPolarSession(uuid), set: (uuid, v) => store.setPolarSession(uuid, v) },
+  // offline profiles' Polar keys; kept when the profile is removed, so adding it again gets the same name back
+  keys: {
+    get: (uuid) => (store.getPolarSession(`key:${uuid}`) || {}).key || null,
+    set: (uuid, key) => store.setPolarSession(`key:${uuid}`, key ? { key } : null),
+  },
   onEvent: (msg) => send('polar:event', msg),
 });
 const polarSync = () => store.getSettings().polarSync !== false;
@@ -443,6 +448,7 @@ handle('game:launch', async (opts = {}) => {
         const acc = await freshAccount(uuid);
         await store.selectAccount(uuid);
         send('accounts:changed', store.listAccounts());
+        polar.connect(); // be on Polar as the account you switched to
         return { uuid: acc.uuid, name: acc.name, type: acc.type, accessToken: acc.mcToken, xuid: acc.xuid || '0' };
       },
       presence: (where) => {
@@ -643,8 +649,25 @@ async function polarState() {
 handle('polar:state', () => polarState());
 handle('polar:signIn', async () => {
   const { selected } = store.listAccounts();
-  if (!selected) throw new Error('Add a Microsoft account first.');
-  await polar.signIn(await freshAccount(selected));
+  if (!selected) throw new Error('Add an account first.');
+  try {
+    await polar.signIn(await freshAccount(selected));
+  } catch (e) {
+    // an offline profile's name that another PC uses on Polar: the page offers to paste that PC's key
+    if (e.code === 'name-taken') return { ...(await polarState()), taken: e.message };
+    throw e;
+  }
+  polar.connect();
+  return polarState();
+});
+handle('polar:offlineKey', (uuid) => {
+  const acc = store.getAccount(uuid);
+  if (!acc || acc.type !== 'offline') throw new Error('Polar keys are for offline profiles.');
+  return polar.offlineKey(acc);
+});
+handle('polar:useOfflineKey', async (key) => {
+  const { selected } = store.listAccounts();
+  await polar.useOfflineKey(selected ? store.getAccount(selected) : null, key);
   polar.connect();
   return polarState();
 });

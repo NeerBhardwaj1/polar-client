@@ -11,6 +11,8 @@ const { startBridge } = require('../src/core/bridge');
 
 const ACC = { uuid: '0f7b6a5c4d3e2f1a0b9c8d7e6f5a4b3c', name: 'Neer', type: 'msa', mcToken: 'mc-token' };
 const UUID = dashed(ACC.uuid);
+const OFF = { uuid: 'fb446c121f9c30fd8582e13de6c79718', name: 'AdminCanyon', type: 'offline', mcToken: '0' };
+const OFF_UUID = dashed(OFF.uuid);
 
 function fakeNet() {
   const calls = [];
@@ -24,6 +26,7 @@ function fakeNet() {
     down: false,
     sync: { data: null, updated: 0 },
     players: {},
+    claims: new Map(), // offline names on Polar -> the key that claimed them
   };
   net.fetch = async (url, init = {}) => {
     const u = new URL(url);
@@ -43,6 +46,14 @@ function fakeNet() {
       const b = JSON.parse(init.body);
       if (!net.joined.has(b.challenge)) return json({ error: 'no' }, 401);
       return json({ token: net.token, uuid: UUID, name: 'Neer', expires: Date.now() + 30 * 864e5 });
+    }
+    if (u.pathname === '/v1/auth/offline') {
+      const b = JSON.parse(init.body);
+      if (!/^[0-9a-f]{64}$/.test(b.key)) return json({ error: 'Bad sign-in request' }, 400);
+      const owner = net.claims.get(b.name.toLowerCase());
+      if (owner && owner !== b.key) return json({ error: `${b.name} is already used on Polar from another PC.`, code: 'name-taken' }, 409);
+      net.claims.set(b.name.toLowerCase(), b.key);
+      return json({ token: net.token, uuid: OFF_UUID, name: b.name, expires: Date.now() + 30 * 864e5, offline: true });
     }
     if (u.pathname.startsWith('/cosmetics/')) {
       const rel = u.pathname.slice('/cosmetics/'.length);
@@ -90,15 +101,17 @@ class FakeWS {
 
 function service(net, extra = {}) {
   const saved = new Map();
+  const keys = extra.keys || new Map();
   const events = [];
   const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'polar-cache-'));
   const svc = new PolarService({
     serverUrl: 'https://polar.example.workers.dev/', cacheDir,
     account: async () => extra.account || ACC,
     tokens: { get: (u) => saved.get(u) || null, set: (u, v) => (v ? saved.set(u, v) : saved.delete(u)) },
+    keys: { get: (u) => keys.get(u) || null, set: (u, v) => (v ? keys.set(u, v) : keys.delete(u)) },
     fetch: net.fetch, WebSocket: FakeWS, onEvent: (e) => events.push(e),
   });
-  return { svc, saved, events, cacheDir };
+  return { svc, saved, keys, events, cacheDir };
 }
 
 const tick = () => new Promise((r) => setImmediate(r));
@@ -121,11 +134,46 @@ test('signs in through Mojang once and keeps the token', async () => {
   assert.equal(saved.get(UUID).token, 'tok-2');
 });
 
-test('offline profiles and a missing server get clear answers', async () => {
+test('offline profiles sign in with a key kept on this PC; the name stays theirs', async () => {
   const net = fakeNet();
-  const { svc } = service(net, { account: { uuid: 'x', name: 'Off', type: 'offline' } });
+  const pc1 = service(net, { account: OFF });
+  assert.equal((await pc1.svc.me()).name, 'Neer');
+  assert.deepEqual(net.calls.slice(0, 1), ['POST polar.example.workers.dev/v1/auth/offline'], 'no Mojang for offline profiles');
+  const key = pc1.keys.get(OFF_UUID);
+  assert.match(key, /^[0-9a-f]{64}$/);
+  assert.equal(pc1.saved.get(OFF_UUID).token, 'tok-1');
+  assert.equal(pc1.svc.offlineKey(OFF), key, 'the same key every time');
+  // the token runs out: the same key signs in again
+  pc1.saved.clear();
+  await pc1.svc.me();
+  assert.equal(pc1.keys.get(OFF_UUID), key);
+
+  // another PC with the same name gets its own key, which Polar turns down
+  const pc2 = service(net, { account: OFF });
+  const e = await pc2.svc.signIn(OFF).catch((x) => x);
+  assert.equal(e.code, 'name-taken');
+  assert.equal(e.status, 409);
+  // connecting doesn't keep retrying a taken name
+  await pc2.svc.connect();
+  assert.equal(pc2.svc.timers.reconnect, null);
+  const wrong = 'c'.repeat(64);
+  const pc2key = pc2.keys.get(OFF_UUID);
+  await assert.rejects(pc2.svc.useOfflineKey(OFF, wrong), (x) => x.code === 'wrong-key');
+  assert.equal(pc2.keys.get(OFF_UUID), pc2key, 'a wrong key leaves the old one');
+  await assert.rejects(pc2.svc.useOfflineKey(OFF, 'not a key'), /isn't a Polar key/);
+  // pasting PC 1's key (with stray spaces and capitals) works
+  const s = await pc2.svc.useOfflineKey(OFF, `  ${key.toUpperCase()}\n`);
+  assert.equal(s.uuid, OFF_UUID);
+  assert.equal(pc2.keys.get(OFF_UUID), key);
+  await assert.rejects(pc2.svc.useOfflineKey(ACC, key), /offline profiles/);
+});
+
+test('no account and a missing server get clear answers', async () => {
+  const net = fakeNet();
+  const { svc } = service(net, { account: null });
+  svc.account = async () => null;
   assert.equal(await svc.session(), null);
-  await assert.rejects(svc.me(), /Microsoft account/);
+  await assert.rejects(svc.me(), /Add an account/);
   const off = new PolarService({ serverUrl: '', cacheDir: os.tmpdir(), account: async () => ACC, tokens: { get: () => null, set: () => {} }, fetch: net.fetch });
   assert.equal(off.configured, false);
   await assert.rejects(off.me(), /isn't set up yet/);

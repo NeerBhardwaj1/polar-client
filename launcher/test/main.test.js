@@ -68,7 +68,7 @@ test('the launcher window can load everything it shows at startup', async () => 
   assert.equal(typeof info.discord, 'boolean');
   // Polar online features: registered, and off (with a clear reason) until the server is set up
   for (const channel of ['polar:state', 'polar:signIn', 'polar:me', 'polar:catalog', 'polar:saveLoadout', 'polar:redeem', 'polar:friends',
-    'polar:addFriend', 'polar:acceptFriend', 'polar:removeFriend', 'polar:invite', 'polar:playing']) assert.ok(handlers[channel], `${channel} is registered`);
+    'polar:addFriend', 'polar:acceptFriend', 'polar:removeFriend', 'polar:invite', 'polar:playing', 'polar:offlineKey', 'polar:useOfflineKey']) assert.ok(handlers[channel], `${channel} is registered`);
   const polarState = await call('polar:state');
   assert.equal(polarState.ok, true, polarState.error);
   assert.equal(polarState.data.configured, Boolean(require('../package.json').polar.serverUrl));

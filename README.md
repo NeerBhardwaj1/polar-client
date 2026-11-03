@@ -79,9 +79,11 @@ Polar's online features run on a small server of your own on **Cloudflare's free
 - **Free and special.** Everything is free except the *Special* collection (Founder, Supporter, Polar Staff, Creator), which you hand out from the admin page or with codes.
 - **The Polar badge.** A small snowflake in front of the names of players on Polar, in name tags and the player list (players can hide theirs in the wardrobe).
 - **Friends.** Add friends by Minecraft name in the launcher's **Friends** page, see who's online and which server they're on, join them with one click, and invite them to your server. Invites also show in game: press **Y** (Controls → Polar Client) to join.
-- **Settings sync.** Your Polar menu settings, HUD layout and waypoints follow your Microsoft account to other PCs (Settings → *Sync my Polar settings between PCs*).
+- **Settings sync.** Your Polar menu settings, HUD layout and waypoints follow your account to other PCs (Settings → *Sync my Polar settings between PCs*).
 
-Signing in uses Minecraft's own server check: the launcher tells Mojang the player is joining a one-time "server" and the Polar server asks Mojang whether that happened, so Minecraft logins never reach the Polar server. Only Microsoft accounts can use Polar's online features.
+Signing in uses Minecraft's own server check: the launcher tells Mojang the player is joining a one-time "server" and the Polar server asks Mojang whether that happened, so Minecraft logins never reach the Polar server.
+
+**Offline profiles** use Polar too, on singleplayer, LAN and offline-mode servers (where their offline id is what other players' games see). An offline profile has no Minecraft login to check, so the launcher makes it a secret key, kept encrypted on the PC, and the first PC to use a name on Polar keeps it: nobody else can be that player on Polar, and "Steve" and "steve" count as the same name. To use the same offline profile on another PC, click the lock next to it in **Accounts** to copy its Polar key, add the profile on the other PC and paste the key on its Cosmetics page. Friends lists show an *Offline profile* tag, and the admin page counts them and marks them.
 
 **Set it up (once):**
 

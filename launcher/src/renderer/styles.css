@@ -319,6 +319,12 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px;
 .account-row .badge-type.offline { color: var(--muted); background: rgba(138,155,186,.14); }
 .account-row .remove { color: var(--muted); font-size: 12px; padding: 4px 8px; border-radius: 8px; }
 .account-row .remove:hover { color: var(--danger); background: rgba(255,107,107,.1); }
+.account-row .key { color: var(--muted); padding: 4px 6px; border-radius: 8px; display: grid; place-items: center; }
+.account-row .key svg { width: 15px; height: 15px; }
+.account-row .key:hover { color: var(--ice-blue); background: rgba(79,163,255,.12); }
+.key-form { max-width: 520px; margin: 16px auto 0; }
+.key-form input { flex: 1; min-width: 0; font-family: ui-monospace, Consolas, monospace; font-size: 12px; }
+.empty-state .key-form .btn { margin-top: 0; }
 .empty { color: var(--muted); text-align: center; padding: 10px; font-size: 12px; }
 .divider { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; margin-top: 4px; }
 .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--line); }
@@ -561,6 +567,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px;
 .friend-row img { width: 36px; height: 36px; border-radius: 8px; image-rendering: pixelated; }
 .friend-row .grow { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .friend-row b { font-weight: 600; }
+.friend-row .tag-offline { margin-left: 7px; font-size: 9.5px; font-weight: 500; letter-spacing: .04em; text-transform: uppercase; padding: 1px 6px; border-radius: 999px; color: var(--muted); background: rgba(138,155,186,.14); vertical-align: 1px; }
 .friend-row small { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .friend-row.online small { color: var(--aurora); }
 .friend-head { position: relative; }

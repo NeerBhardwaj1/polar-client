@@ -1,7 +1,7 @@
 {
   "name": "polar-client-launcher",
   "productName": "Polar Client",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Launcher for Polar Client — the Polar Client mod on Minecraft 26.3, 1.21.11, 1.21.10, 1.16.5 (Fabric) and 1.8.9 (Legacy Fabric), with a performance pack.",
   "author": "Neer Bhardwaj",
   "license": "MIT",

@@ -3,6 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { makeCtx } from './shim.js';
 import { Hub, useCatalog } from '../src/hub.js';
+import { md5, offlineUuid, isOfflineUuid } from '../src/offline.js';
 import worker from '../src/index.js';
 
 const CATALOG = {
@@ -248,6 +249,75 @@ test('friends: requests, accepting, who is online and where, invites, removing',
   assert.deepEqual(r.data.friends, []);
   assert.equal((await call('POST', '/v1/friends/invite', { token: alice, body: { uuid: B } })).status, 404);
   assert.equal((await call('GET', '/v1/friends', { token: alice })).data.friends.length, 1);
+});
+
+const KEY1 = 'a'.repeat(64), KEY2 = 'b'.repeat(64);
+const offline = (call, name, key, ip = '9.9.9.9') => call('POST', '/v1/auth/offline', { body: { name, key }, headers: { 'CF-Connecting-IP': ip } });
+
+test('offline profiles: Minecraft\'s offline ids, and a name belongs to the PC that first used it', async () => {
+  const mojang = fakeMojang();
+  const { hub, call, ctx } = setup();
+  // the id the game uses for an offline player: UUIDv3 of "OfflinePlayer:<name>" (Java's UUID.nameUUIDFromBytes)
+  assert.equal(offlineUuid('AdminCanyon'), 'fb446c12-1f9c-30fd-8582-e13de6c79718');
+  assert.equal(Buffer.from(md5(new TextEncoder().encode('message digest'))).toString('hex'), 'f96b697d7cb7938d525a2f31aaf161d0');
+  assert.equal(isOfflineUuid(offlineUuid('Alice')), true);
+  assert.equal(isOfflineUuid(dash(ALICE.id)), false);
+
+  let r = await offline(call, 'AdminCanyon', KEY1);
+  assert.equal(r.status, 200, JSON.stringify(r.data));
+  assert.equal(r.data.uuid, offlineUuid('AdminCanyon'));
+  assert.equal(r.data.offline, true);
+  const tok = r.data.token;
+  assert.equal((await call('GET', '/v1/me', { token: tok })).data.name, 'AdminCanyon');
+  // the same PC (same key) again: fine; another key: the name is taken, and "admincanyon" too
+  assert.equal((await offline(call, 'AdminCanyon', KEY1)).status, 200);
+  r = await offline(call, 'AdminCanyon', KEY2);
+  assert.equal(r.status, 409);
+  assert.equal(r.data.code, 'name-taken');
+  assert.equal((await offline(call, 'admincanyon', KEY2)).data.code, 'name-taken');
+  assert.equal((await offline(call, 'ab', KEY1)).status, 400, 'too short');
+  assert.equal((await offline(call, 'Bob', 'nope')).status, 400, 'bad key');
+  assert.equal(ctx.db.prepare('SELECT key_hash FROM offline_keys').get().key_hash.length, 64, 'only a hash of the key is kept');
+
+  // cosmetics and the badge, like any player
+  assert.equal((await call('PUT', '/v1/me/loadout', { token: tok, body: { slots: { cape: 'cape_aurora' } } })).status, 200);
+  await goOnline(hub, tok);
+  const alice = await signIn(call, mojang, ALICE);
+  r = await call('POST', '/v1/players', { token: alice, body: { uuids: [offlineUuid('AdminCanyon')] } });
+  assert.deepEqual(r.data.players[offlineUuid('AdminCanyon')], { badge: true, slots: { cape: { id: 'cape_aurora' } } });
+
+  // friends: an offline profile called Alice as well as the real Alice
+  const fakeAlice = (await offline(call, 'Alice', KEY2)).data.token;
+  r = await call('POST', '/v1/friends/add', { token: tok, body: { name: 'alice' } });
+  assert.deepEqual(r.data.outgoing, [{ uuid: offlineUuid('Alice'), name: 'Alice', offline: true }], 'offline profiles find offline profiles first');
+  r = await call('POST', '/v1/friends/add', { token: alice, body: { name: 'AdminCanyon' } });
+  assert.deepEqual(r.data.outgoing, [{ uuid: offlineUuid('AdminCanyon'), name: 'AdminCanyon', offline: true }], 'the real Alice finds the only AdminCanyon');
+  r = await call('POST', '/v1/friends/accept', { token: tok, body: { uuid: dash(ALICE.id) } });
+  assert.deepEqual(r.data.friends.map((f) => [f.name, Boolean(f.offline)]), [['Alice', false]]);
+  assert.equal((await call('GET', '/v1/friends', { token: alice })).data.friends[0].offline, true);
+  const bob = await signIn(call, mojang, BOB);
+  r = await call('POST', '/v1/friends/add', { token: bob, body: { name: 'Alice' } });
+  assert.deepEqual(r.data.outgoing, [{ uuid: dash(ALICE.id), name: 'Alice' }], 'Minecraft accounts find Minecraft accounts first');
+  assert.ok(fakeAlice);
+
+  // admin: the real account first, the offline one by its id; offline profiles counted
+  const admin = 'admin-pass-123456';
+  assert.equal((await call('GET', '/v1/admin/player?q=Alice', { admin })).data.uuid, dash(ALICE.id));
+  r = await call('GET', `/v1/admin/player?q=${offlineUuid('Alice')}`, { admin });
+  assert.equal(r.data.offline, true);
+  assert.equal((await call('GET', '/v1/admin/stats', { admin })).data.offline, 2);
+  // blocked offline profiles can't sign in again
+  await call('POST', '/v1/admin/ban', { admin, body: { player: offlineUuid('AdminCanyon'), banned: true } });
+  assert.equal((await offline(call, 'AdminCanyon', KEY1)).status, 403);
+});
+
+test('offline profiles: new names per address are limited', async () => {
+  const { call } = setup();
+  let last;
+  for (let i = 0; i < 21; i++) last = await offline(call, `Player${i}x`, KEY1, i < 18 ? '7.7.7.7' : '7.7.7.7');
+  assert.equal(last.status, 429);
+  assert.equal((await offline(call, 'Player0x', KEY1, '7.7.7.7')).status, 200, 'names you already have still sign in');
+  assert.equal((await offline(call, 'Someone', KEY1, '8.8.8.8')).status, 200);
 });
 
 test('settings sync keeps one copy per player', async () => {

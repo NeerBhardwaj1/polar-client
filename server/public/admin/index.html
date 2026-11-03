@@ -172,7 +172,7 @@ function itemOptions(select) {
 
 async function loadStats() {
   const s = await api('GET', 'stats');
-  const cards = [['players', 'players'], ['online', 'on Polar now'], ['today', 'active today'], ['grants', 'cosmetics given'],
+  const cards = [['players', 'players'], ['offline', 'of them offline profiles'], ['online', 'on Polar now'], ['today', 'active today'], ['grants', 'cosmetics given'],
     ['codes', 'codes with uses left'], ['items', 'cosmetics'], ['special', 'special cosmetics']];
   $('stats').replaceChildren(...cards.map(([k, label]) => h('div', { class: 'stat' }, h('b', {}, s[k] ?? 0), h('span', {}, label))));
 }
@@ -190,6 +190,7 @@ function renderPlayer(p) {
       h('div', { class: 'tags' },
         h('span', { class: `tag ${p.online ? 'on' : ''}` }, p.online ? 'on Polar now' : `last seen ${when(p.lastSeen)}`),
         p.signedIn ? h('span', { class: 'tag' }, 'has used Polar') : h('span', { class: 'tag' }, 'never signed in to Polar'),
+        p.offline ? h('span', { class: 'tag' }, 'offline profile') : null,
         p.banned ? h('span', { class: 'tag bad' }, 'blocked') : null),
       h('div', { class: 'muted', style: 'margin-top:6px' }, slots.length ? `Wearing: ${slots.map(([s, v]) => itemName(v.id)).join(', ')}` : 'Wearing nothing yet'),
       h('h3', { style: 'font-size:13px;margin:14px 0 6px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em' }, 'Given cosmetics'),
