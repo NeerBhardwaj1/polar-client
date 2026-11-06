@@ -12,9 +12,6 @@
     "samplers": [
         {
             "name": "DiffuseSampler"
-        },
-        {
-            "name": "PrevSampler"
         }
     ],
     "uniforms": [
@@ -60,11 +57,44 @@
             ]
         },
         {
-            "name": "BlendFactor",
+            "name": "TurnX",
             "type": "float",
-            "count": 1,
+            "count": 3,
             "values": [
-                0.5
+                1.0,
+                0.0,
+                0.0
+            ]
+        },
+        {
+            "name": "TurnY",
+            "type": "float",
+            "count": 3,
+            "values": [
+                0.0,
+                1.0,
+                0.0
+            ]
+        },
+        {
+            "name": "TurnZ",
+            "type": "float",
+            "count": 3,
+            "values": [
+                0.0,
+                0.0,
+                1.0
+            ]
+        },
+        {
+            "name": "Lens",
+            "type": "float",
+            "count": 4,
+            "values": [
+                1.0,
+                1.0,
+                0.06,
+                0.0
             ]
         }
     ]

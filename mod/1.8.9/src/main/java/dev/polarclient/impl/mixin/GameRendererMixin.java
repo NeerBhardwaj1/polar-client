@@ -20,7 +20,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 /**
  * Zoom (scales the FOV), No Hurt Cam (scales the 14 degree hurt shake), Fullbright (lightmap built as if brightness
  * were far past "Bright"), Freelook (the camera reads Freelook's angles instead of your player's) and Motion Blur
- * (drawn over the world, before the HUD).
+ * (drawn after the world, before the hand and the HUD).
  */
 @Mixin(GameRenderer.class)
 public abstract class GameRendererMixin {
@@ -71,8 +71,24 @@ public abstract class GameRendererMixin {
 		return f != null ? f.pitch() : entity.prevPitch;
 	}
 
-	@Inject(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gl/Framebuffer;bind(Z)V"))
-	private void polar$motionBlur(float partialTicks, long nanoTime, CallbackInfo ci) {
-		MotionBlur.render(this.client, partialTicks);
+	@Shadow
+	private float getFov(float tickDelta, boolean changingFov) {
+		throw new AssertionError();
+	}
+
+	@Inject(method = "renderWorld(IFJ)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/GameRenderer;renderHand(FI)V"))
+	private void polar$motionBlur(int pass, float tickDelta, long limitTime, CallbackInfo ci) {
+		FreelookModule f = polar$freelook();
+		float yaw, pitch;
+		if (f != null) {
+			yaw = f.yaw();
+			pitch = f.pitch();
+		} else {
+			Entity e = this.client.getCameraEntity();
+			if (e == null) return;
+			yaw = e.prevYaw + (e.yaw - e.prevYaw) * tickDelta;
+			pitch = e.prevPitch + (e.pitch - e.prevPitch) * tickDelta;
+		}
+		MotionBlur.render(this.client, yaw, pitch, this.getFov(tickDelta, true), tickDelta);
 	}
 }

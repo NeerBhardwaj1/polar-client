@@ -27,7 +27,6 @@
 		"ParticleEngineMixin",
 		"PlayerTabOverlayAccessor",
 		"PlayerTabOverlayMixin",
-		"PostChainAccessor",
 		"ScreenEffectRendererMixin",
 		"ScreenSwapMixin",
 		"ShaderManagerMixin",

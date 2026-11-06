@@ -1,21 +1,19 @@
 package dev.polarclient.impl;
 
-import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.resource.GraphicsResourceAllocator;
-import dev.polarclient.Polar;
-import dev.polarclient.impl.mixin.PostChainAccessor;
 import dev.polarclient.modules.visual.MotionBlurModule;
+import dev.polarclient.render.CameraBlur;
+import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.LevelTargetBundle;
 import net.minecraft.client.renderer.PostChain;
+import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.resources.Identifier;
 
-import java.util.Map;
-
 /**
- * Motion blur on 1.21.11: Polar's post effect (assets/polarclient/post_effect/motion_blur_*.json) drawn right after the
- * world, before the HUD. The effect keeps the last blurred frame in its "previous" target; that's wiped whenever the
- * blur restarts (switched on again, back from a menu without a world, another strength), so no old frame shows through.
+ * Motion blur on 1.21.11: Polar's post effect (assets/polarclient/post_effect/motion_blur.json) drawn right after the
+ * world and before your hand, so the hand, the HUD and menus stay sharp. The camera numbers from {@link CameraBlur}
+ * reach the shader through a small texture (one float per texel), since a post effect's own settings are fixed.
  */
 public final class MotionBlur {
 	/**
@@ -23,65 +21,56 @@ public final class MotionBlur {
 	 * (turn packs off, or even leave the world); {@code ShaderManagerMixin} skips that for Polar's effect.
 	 */
 	public static volatile boolean loading;
-	/** After this long without a blurred frame, the next one starts fresh. */
-	private static final long RESTART_NANOS = 250_000_000L;
-	/** The effect drawn last (a closed one after a resource reload, which is fine: it keeps nothing then). */
-	private static PostChain lastChain;
-	private static long lastFrame;
+	private static final Identifier CHAIN = Identifier.fromNamespaceAndPath("polarclient", "motion_blur");
+	/** The effect reads "polarclient:motion_blur_params", which the game looks up under textures/effect/. */
+	private static final Identifier PARAMS = Identifier.fromNamespaceAndPath("polarclient", "textures/effect/motion_blur_params.png");
+	private static DynamicTexture params;
 
 	private MotionBlur() {
 	}
 
-	/** Draws the blur over the world; called by {@code GameRendererMixin} after the world (and entity outlines). */
-	public static void render(Minecraft mc, GraphicsResourceAllocator resources) {
-		MotionBlurModule m = Polar.modules() == null ? null : Polar.modules().motionBlur;
-		if (m == null || !m.active() || mc.level == null) {
-			if (lastChain != null) {
-				forget(lastChain); // switched off: free the kept frame
-				lastChain = null;
+	/** Blurs the world for this frame while the camera turns; called by {@code GameRendererMixin} before the hand. */
+	public static void render(Minecraft mc, GraphicsResourceAllocator resources, Camera camera, float fovDegrees) {
+		MotionBlurModule m = CameraBlur.active();
+		if (m == null || mc.level == null) return;
+		int w = mc.getWindow().getWidth(), h = mc.getWindow().getHeight();
+		if (w <= 0 || h <= 0) return;
+		float tanY = (float) Math.tan(Math.toRadians(fovDegrees) / 2);
+		if (!CameraBlur.update(m, camera.yRot(), camera.xRot(), tanY * w / h, tanY, h)) return;
+		try {
+			if (params == null) {
+				params = new DynamicTexture(() -> "Polar motion blur", CameraBlur.PARAMS, 1, true);
+				mc.getTextureManager().register(PARAMS, params);
 			}
+			float[] p = CameraBlur.params();
+			for (int i = 0; i < CameraBlur.PARAMS; i++) params.getPixels().setPixelABGR(i, 0, Float.floatToRawIntBits(p[i]));
+			params.upload();
+		} catch (RuntimeException e) {
+			m.fail("couldn't make its settings texture", e);
 			return;
 		}
-		Identifier id = Identifier.fromNamespaceAndPath("polarclient", m.effectName());
-		PostChain chain = load(mc, m, id);
+		PostChain chain = load(mc, m);
 		if (chain == null) return;
-		long now = System.nanoTime();
-		if (chain != lastChain || now - lastFrame > RESTART_NANOS) {
-			if (lastChain != null && lastChain != chain) forget(lastChain);
-			forget(chain);
-		}
-		lastChain = chain;
-		lastFrame = now;
 		try {
 			chain.process(mc.getMainRenderTarget(), resources);
 		} catch (RuntimeException e) {
-			m.fail("drawing " + id + " failed", e);
-			forget(chain);
-			lastChain = null;
+			m.fail("drawing " + CHAIN + " failed", e);
 		}
 	}
 
-	/** Drops the effect's kept frame (it's made again, empty, on the next frame drawn). */
-	private static void forget(PostChain chain) {
-		if (chain == null) return;
-		Map<Identifier, RenderTarget> kept = ((PostChainAccessor) chain).polar$persistentTargets();
-		for (RenderTarget target : kept.values()) target.destroyBuffers();
-		kept.clear();
-	}
-
 	/** Loads (or finds the already loaded) effect; on failure the module is switched off instead. */
-	private static PostChain load(Minecraft mc, MotionBlurModule m, Identifier id) {
+	private static PostChain load(Minecraft mc, MotionBlurModule m) {
 		PostChain chain;
 		loading = true;
 		try {
-			chain = mc.getShaderManager().getPostChain(id, LevelTargetBundle.MAIN_TARGETS);
+			chain = mc.getShaderManager().getPostChain(CHAIN, LevelTargetBundle.MAIN_TARGETS);
 		} catch (RuntimeException e) {
-			m.fail("loading " + id + " failed", e);
+			m.fail("loading " + CHAIN + " failed", e);
 			return null;
 		} finally {
 			loading = false;
 		}
-		if (chain == null) m.fail("loading " + id + " failed (see the error above)", null);
+		if (chain == null) m.fail("loading " + CHAIN + " failed (see the error above)", null);
 		return chain;
 	}
 }

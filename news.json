@@ -1,6 +1,15 @@
 {
   "items": [
     {
+      "id": "release-1.0.7",
+      "date": "2026-11-07",
+      "tag": "Update",
+      "title": "Polar Client 1.0.7",
+      "body": "Motion Blur, rebuilt: smooth camera blur on fast turns, like modern games, with no doubled frames or lag. It looks the same at any FPS, and your hand and HUD stay sharp.",
+      "link": "https://github.com/PolarClientMC/polar-client/releases/tag/v1.0.7",
+      "linkLabel": "Release notes"
+    },
+    {
       "id": "release-1.0.6",
       "date": "2026-11-07",
       "tag": "Update",
