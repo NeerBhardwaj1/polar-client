@@ -70,7 +70,7 @@ test('MOTD parsing: legacy codes and chat components', () => {
 });
 
 test('Server List Ping against a fake server', async () => {
-  const status = { version: { name: '26.3', protocol: 999 }, players: { online: 7, max: 100, sample: [{ name: 'Neer', id: 'x' }] }, description: { text: 'Welcome!' } };
+  const status = { version: { name: '26.3', protocol: 999 }, players: { online: 7, max: 100, sample: [{ name: 'Frosty', id: 'x' }] }, description: { text: 'Welcome!' } };
   const srv = net.createServer((sock) => {
     let buf = Buffer.alloc(0);
     let stage = 0;
@@ -99,7 +99,7 @@ test('Server List Ping against a fake server', async () => {
     const r = await servers.ping(`127.0.0.1:${srv.address().port}`);
     assert.equal(r.online, true);
     assert.equal(r.version, '26.3');
-    assert.deepEqual(r.players, { online: 7, max: 100, sample: ['Neer'] });
+    assert.deepEqual(r.players, { online: 7, max: 100, sample: ['Frosty'] });
     assert.deepEqual(r.motd, [{ text: 'Welcome!' }]);
     assert.ok(r.ping >= 1);
     await assert.rejects(servers.ping('127.0.0.1:1', { timeout: 2000 }));

@@ -9,7 +9,7 @@ const path = require('node:path');
 const { PolarService, dashed } = require('../src/core/polar');
 const { startBridge } = require('../src/core/bridge');
 
-const ACC = { uuid: '0f7b6a5c4d3e2f1a0b9c8d7e6f5a4b3c', name: 'Neer', type: 'msa', mcToken: 'mc-token' };
+const ACC = { uuid: '0f7b6a5c4d3e2f1a0b9c8d7e6f5a4b3c', name: 'Frosty', type: 'msa', mcToken: 'mc-token' };
 const UUID = dashed(ACC.uuid);
 const OFF = { uuid: 'fb446c121f9c30fd8582e13de6c79718', name: 'AdminCanyon', type: 'offline', mcToken: '0' };
 const OFF_UUID = dashed(OFF.uuid);
@@ -45,7 +45,7 @@ function fakeNet() {
     if (u.pathname === '/v1/auth/verify') {
       const b = JSON.parse(init.body);
       if (!net.joined.has(b.challenge)) return json({ error: 'no' }, 401);
-      return json({ token: net.token, uuid: UUID, name: 'Neer', expires: Date.now() + 30 * 864e5 });
+      return json({ token: net.token, uuid: UUID, name: 'Frosty', expires: Date.now() + 30 * 864e5 });
     }
     if (u.pathname === '/v1/auth/offline') {
       const b = JSON.parse(init.body);
@@ -62,7 +62,7 @@ function fakeNet() {
       return new Response(net.files[rel], { status: 200, headers: { ETag: net.etag } });
     }
     if (auth !== `Bearer ${net.token}` || auth === `Bearer ${net.rejectToken}`) return json({ error: 'Sign in again.' }, 401);
-    if (u.pathname === '/v1/me') return json({ uuid: UUID, name: 'Neer', loadout: { slots: {}, hideBadge: false }, owned: [] });
+    if (u.pathname === '/v1/me') return json({ uuid: UUID, name: 'Frosty', loadout: { slots: {}, hideBadge: false }, owned: [] });
     if (u.pathname === '/v1/players') {
       const b = JSON.parse(init.body);
       const players = {};
@@ -120,7 +120,7 @@ test('signs in through Mojang once and keeps the token', async () => {
   const net = fakeNet();
   const { svc, saved } = service(net);
   const me = await svc.me();
-  assert.equal(me.name, 'Neer');
+  assert.equal(me.name, 'Frosty');
   assert.deepEqual(net.calls.slice(0, 3), ['POST polar.example.workers.dev/v1/auth/challenge', 'POST sessionserver.mojang.com/session/minecraft/join', 'POST polar.example.workers.dev/v1/auth/verify']);
   assert.equal(saved.get(UUID).token, 'tok-1');
   net.calls.length = 0;
@@ -137,7 +137,7 @@ test('signs in through Mojang once and keeps the token', async () => {
 test('offline profiles sign in with a key kept on this PC; the name stays theirs', async () => {
   const net = fakeNet();
   const pc1 = service(net, { account: OFF });
-  assert.equal((await pc1.svc.me()).name, 'Neer');
+  assert.equal((await pc1.svc.me()).name, 'Frosty');
   assert.deepEqual(net.calls.slice(0, 1), ['POST polar.example.workers.dev/v1/auth/offline'], 'no Mojang for offline profiles');
   const key = pc1.keys.get(OFF_UUID);
   assert.match(key, /^[0-9a-f]{64}$/);
@@ -269,7 +269,7 @@ test('the bridge gives the game the Polar state, files, lookups and events', asy
     listAccounts: () => ({ selected: null, accounts: [] }),
     session: async () => ({}),
     polar: {
-      state: async () => ({ configured: true, signedIn: true, uuid: UUID, name: 'Neer', online: true }),
+      state: async () => ({ configured: true, signedIn: true, uuid: UUID, name: 'Frosty', online: true }),
       file: async (rel) => {
         if (rel !== 'textures/a.png') throw Object.assign(new Error('No such file'), { status: 404 });
         return Buffer.from([1, 2, 3]);

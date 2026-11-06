@@ -26,7 +26,7 @@ public class TabListModule extends HudModule {
 		if (!preview) return t;
 		if (t != null && !t.entries.isEmpty()) return t;
 		TabListView demo = new TabListView("§b§lPolar SMP", "§7play.polar.example");
-		String[] names = {"Neer", "Frosty", "Aurora", "Glacier", "Tundra", "Blizzard"};
+		String[] names = {"Polar", "Frosty", "Aurora", "Glacier", "Tundra", "Blizzard"};
 		int[] pings = {24, 61, 140, 38, 220, 75};
 		for (int i = 0; i < names.length; i++) {
 			demo.entries.add(new TabListView.Entry(names[i], names[i], UUID.nameUUIDFromBytes(names[i].getBytes()), pings[i], false));

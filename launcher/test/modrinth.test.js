@@ -24,7 +24,7 @@ function fakeModrinth(seen) {
     seen && seen.push(u);
     if (u.hostname === 'api.modrinth.com' && u.pathname === '/v2/search') {
       return new Response(JSON.stringify({ total_hits: 2, offset: 0, limit: 20, hits: [
-        { project_id: 'jei00001', slug: 'cool-mod', title: 'Cool Mod', description: 'Does cool things', author: 'neer', icon_url: 'https://cdn.modrinth.com/x.png', downloads: 1234567, follows: 4321, display_categories: ['fabric', 'utility'], date_modified: '2026-10-01T00:00:00Z' },
+        { project_id: 'jei00001', slug: 'cool-mod', title: 'Cool Mod', description: 'Does cool things', author: 'frosty', icon_url: 'https://cdn.modrinth.com/x.png', downloads: 1234567, follows: 4321, display_categories: ['fabric', 'utility'], date_modified: '2026-10-01T00:00:00Z' },
         { project_id: 'AANobbMI', slug: 'sodium', title: 'Sodium', description: 'Fast', author: 'jelly', icon_url: 'javascript:alert(1)', downloads: 1, follows: 1, categories: ['optimization'] },
       ] }), { status: 200 });
     }

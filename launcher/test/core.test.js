@@ -71,7 +71,7 @@ test('launch command for Windows', () => {
   const merged = mergeProfiles(vanilla, fabric);
   const libraries = resolveLibraries(merged, WIN);
   const dirs = { game: 'C:/pc/instance', assets: 'C:/pc/assets', libraries: 'C:/pc/libraries', natives: 'C:/pc/natives/26.3', clientJar: 'C:/pc/versions/26.3/26.3.jar', loggingConfig: 'C:/pc/assets/log_configs/client.xml' };
-  const account = { name: 'Neer', uuid: 'abc123', mcToken: 'SECRET', xuid: '42' };
+  const account = { name: 'Frosty', uuid: 'abc123', mcToken: 'SECRET', xuid: '42' };
   const settings = { memoryGb: 6, jvmArgs: '-XX:+UseStringDeduplication', quickJoin: 'play.example.net', customResolution: true, width: 1600, height: 900 };
   const { args, java, cwd } = buildLaunchCommand({ profile: merged, env: WIN, java: 'javaw.exe', libraries, dirs, account, settings, clientId: 'cid' });
   assert.equal(java, 'javaw.exe');
@@ -88,7 +88,7 @@ test('launch command for Windows', () => {
   assert.ok(main > args.indexOf('-cp'), 'main class comes after JVM args');
   const game = args.slice(main + 1);
   const val = (flag) => game[game.indexOf(flag) + 1];
-  assert.equal(val('--username'), 'Neer');
+  assert.equal(val('--username'), 'Frosty');
   assert.equal(val('--accessToken'), 'SECRET');
   assert.equal(val('--assetIndex'), vanilla.assetIndex.id);
   assert.equal(val('--width'), '1600');

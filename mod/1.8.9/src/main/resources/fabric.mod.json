@@ -5,11 +5,11 @@
 	"name": "Polar Client",
 	"description": "An all-in-one PvP and quality-of-life client: HUD mods, zoom, freelook, keystrokes, custom crosshair, fullbright and more, with a Right Shift mod menu and drag-and-drop HUD editor.",
 	"authors": [
-		"Neer Bhardwaj"
+		"Polar Client"
 	],
 	"contact": {
-		"homepage": "https://github.com/NeerBhardwaj1",
-		"sources": "https://github.com/NeerBhardwaj1/polar-client"
+		"homepage": "https://github.com/PolarClientMC",
+		"sources": "https://github.com/PolarClientMC/polar-client"
 	},
 	"license": "MIT",
 	"icon": "assets/polarclient/icon.png",

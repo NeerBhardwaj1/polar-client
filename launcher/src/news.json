@@ -6,7 +6,7 @@
       "tag": "Update",
       "title": "Polar Client 1.0.4",
       "body": "Fixes Minecraft 1.21.11 and 1.21.10 not starting. Offline profiles can now use Polar cosmetics, the badge, friends and settings sync.",
-      "link": "https://github.com/NeerBhardwaj1/polar-client/releases/tag/v1.0.4",
+      "link": "https://github.com/PolarClientMC/polar-client/releases/tag/v1.0.4",
       "linkLabel": "Release notes"
     },
     {
@@ -15,7 +15,7 @@
       "tag": "Update",
       "title": "Polar Client 1.0.3",
       "body": "Offline profiles can now use Polar cosmetics, the badge, friends and settings sync.",
-      "link": "https://github.com/NeerBhardwaj1/polar-client/releases/tag/v1.0.3",
+      "link": "https://github.com/PolarClientMC/polar-client/releases/tag/v1.0.3",
       "linkLabel": "Release notes"
     },
     {
@@ -24,7 +24,7 @@
       "tag": "Update",
       "title": "Polar Client 1.0.2",
       "body": "The Cosmetics Update! 80 original capes, wings, hats, back items and auras, most of them animated. Pick yours in the launcher under Cosmetics → Polar wardrobe, and other Polar players see them in game. Polar players now get a snowflake badge next to their name. New Friends page: see who's online and which server they're on, join them in one click or invite them (press Y in game to accept an invite). Your Polar settings, HUD layout and waypoints now sync between your PCs.",
-      "link": "https://github.com/NeerBhardwaj1/polar-client/releases/tag/v1.0.2",
+      "link": "https://github.com/PolarClientMC/polar-client/releases/tag/v1.0.2",
       "linkLabel": "Release notes"
     },
     {
@@ -33,7 +33,7 @@
       "tag": "Update",
       "title": "Polar Client 1.0.1",
       "body": "First public release: five Minecraft versions, 79 mods",
-      "link": "https://github.com/NeerBhardwaj1/polar-client/releases/tag/v1.0.1",
+      "link": "https://github.com/PolarClientMC/polar-client/releases/tag/v1.0.1",
       "linkLabel": "Release notes"
     },
     {
@@ -42,7 +42,7 @@
       "tag": "Update",
       "title": "Polar Client 1.0.0",
       "body": "First Launch of the Polar Client.",
-      "link": "https://github.com/NeerBhardwaj1/polar-client/releases/tag/v1.0.0",
+      "link": "https://github.com/PolarClientMC/polar-client/releases/tag/v1.0.0",
       "linkLabel": "Release notes"
     },
     {

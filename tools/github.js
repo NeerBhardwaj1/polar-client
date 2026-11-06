@@ -14,10 +14,12 @@ const PKG = path.join(ROOT, 'launcher', 'package.json');
 const LOCK = path.join(ROOT, 'launcher', 'package-lock.json');
 const NEWS = [path.join(ROOT, 'news.json'), path.join(ROOT, 'launcher', 'src', 'news.json')];
 const PENDING_WORKFLOWS = path.join(ROOT, 'tools', 'github-workflows');
-const REPO = (JSON.parse(fs.readFileSync(PKG, 'utf8')).polar || {}).updateRepo || 'NeerBhardwaj1/polar-client';
+// the repository belongs to the PolarClientMC organization; you upload to it with your own GitHub account (see account())
+const REPO = (JSON.parse(fs.readFileSync(PKG, 'utf8')).polar || {}).updateRepo || 'PolarClientMC/polar-client';
 const [OWNER, NAME] = REPO.split('/');
 const WEB = `https://github.com/${REPO}`;
-const MY_NAME = 'Neer Bhardwaj';
+// the name on commits: the project's, never yours (GitHub still links them to your account through its private address)
+const AUTHOR = 'Polar Client';
 const FIRST_COMMIT = [
   'Polar Client',
   '',
@@ -51,7 +53,17 @@ function say(s = '') {
   console.log(s);
 }
 
+// undoes a half-done step (a release tag that never reached GitHub) when something fails
+let undo = null;
+
 function fail(msg) {
+  if (undo) {
+    try {
+      undo();
+    } catch {
+      // best effort
+    }
+  }
   console.error(`\n${msg}`);
   rl.close();
   process.exit(1);
@@ -111,27 +123,50 @@ function ensureRepo() {
   }
 }
 
+const localConfig = (key) => git(['config', '--local', key], { quiet: true, allowFail: true }).out;
+
 /**
- * Commits in this repository are always signed as you, with GitHub's private "noreply" address, so your real email and
- * any other Git identity saved on this PC stay out of the public history. Other repositories on the PC aren't affected.
+ * The GitHub account you upload with (a member of the organization that owns the repository). Its login is read from
+ * this folder's Git settings (the remote, or the noreply address) or asked for once, and saved there: never in the code.
  */
-let myEmail = `${OWNER}@users.noreply.github.com`;
-async function ensureIdentity() {
-  try {
-    const res = await fetch(`https://api.github.com/users/${OWNER}`, { headers: { Accept: 'application/vnd.github+json' } });
-    const user = await res.json();
-    if (user && user.id) myEmail = `${user.id}+${OWNER}@users.noreply.github.com`;
-  } catch {
-    // offline: use the address already set for this repository, or the older noreply form
-    const local = git(['config', '--local', 'user.email'], { quiet: true, allowFail: true }).out;
-    if (/@users\.noreply\.github\.com$/i.test(local)) myEmail = local;
+let account = '';
+async function githubAccount() {
+  if (account) return account;
+  const remote = /^https:\/\/([^@/:]+)@github\.com\//i.exec(git(['remote', 'get-url', 'origin'], { quiet: true, allowFail: true }).out);
+  const noreply = /^\d+\+([^@]+)@users\.noreply\.github\.com$/i.exec(localConfig('user.email'));
+  let login = localConfig('polar.githubUser') || (remote && remote[1]) || (noreply && noreply[1]) || '';
+  while (!/^[a-z\d][a-z\d-]{0,38}$/i.test(login)) {
+    if (inputClosed) fail('Run this again and type your GitHub username when it asks.');
+    login = (await ask(`Your GitHub username (the account you sign in with, a member of ${OWNER})`)).replace(/^@/, '');
   }
-  const name = git(['config', '--local', 'user.name'], { quiet: true, allowFail: true }).out;
-  const email = git(['config', '--local', 'user.email'], { quiet: true, allowFail: true }).out;
-  if (name === MY_NAME && email === myEmail) return;
-  git(['config', '--local', 'user.name', MY_NAME], { quiet: true });
+  if (localConfig('polar.githubUser') !== login) git(['config', '--local', 'polar.githubUser', login], { quiet: true });
+  account = login;
+  return account;
+}
+
+/**
+ * Commits in this repository are signed as Polar Client, with GitHub's private "noreply" address for your account, so
+ * your name, your real email and any other Git identity saved on this PC stay out of the public history. Other
+ * repositories on the PC aren't affected.
+ */
+let myEmail = '';
+async function ensureIdentity() {
+  const user = await githubAccount();
+  let id = null;
+  try {
+    const res = await fetch(`https://api.github.com/users/${user}`, { headers: { Accept: 'application/vnd.github+json' } });
+    id = (await res.json()).id || null;
+  } catch {
+    // offline
+  }
+  const local = localConfig('user.email');
+  if (id) myEmail = `${id}+${user}@users.noreply.github.com`;
+  else if (/@users\.noreply\.github\.com$/i.test(local)) myEmail = local; // offline: keep the address already set
+  else myEmail = `${user}@users.noreply.github.com`;
+  if (localConfig('user.name') === AUTHOR && local === myEmail) return;
+  git(['config', '--local', 'user.name', AUTHOR], { quiet: true });
   git(['config', '--local', 'user.email', myEmail], { quiet: true });
-  say(`Commits here are signed as ${MY_NAME} <${myEmail}> (GitHub's private address for ${OWNER}).`);
+  say(`Commits here are signed as ${AUTHOR}, with GitHub's private address for your account.`);
 }
 
 /**
@@ -152,14 +187,14 @@ async function fixAuthors() {
   }
   if (git(['status', '--porcelain'], { quiet: true }).out) return false;
   say(`\nEarlier commits are signed as ${[...others].join(', ')}.`);
-  if (!/^y/i.test(await ask(`Re-sign them as ${MY_NAME} and replace them on GitHub? (y/n)`, 'y'))) return false;
+  if (!/^y/i.test(await ask(`Re-sign them as ${AUTHOR} and replace them on GitHub? (y/n)`, 'y'))) return false;
   const r = git(['rebase', '-q', '--root', '--exec', 'git commit --amend --no-edit --reset-author --no-verify -q'], { allowFail: true });
   if (!r.ok) {
     git(['rebase', '--abort'], { quiet: true, allowFail: true });
     say('Could not re-sign them; nothing was changed.');
     return false;
   }
-  say(`Re-signed every commit as ${MY_NAME}.`);
+  say(`Re-signed every commit as ${AUTHOR}.`);
   return true;
 }
 
@@ -185,14 +220,22 @@ function checkIgnored() {
 }
 
 /**
- * The remote names the account (https://NeerBhardwaj1@github.com/...), so Git asks for that account's login instead of
- * using whichever GitHub login Windows saved first.
+ * The remote names your account (https://<you>@github.com/PolarClientMC/polar-client.git), so Git asks for that
+ * account's login instead of using whichever GitHub login Windows saved first. A remote still pointing at the
+ * repository's old address is moved to the new one, and the old one is kept (polar.movedFrom) until an upload to the new
+ * one works, so push() can say to move the repository on GitHub rather than make a new, empty one.
  */
-const REMOTE = `https://${OWNER}@github.com/${REPO}.git`;
-function ensureRemote() {
+async function ensureRemote() {
+  const want = `https://${await githubAccount()}@github.com/${REPO}.git`;
   const url = git(['remote', 'get-url', 'origin'], { quiet: true, allowFail: true });
-  if (!url.ok) git(['remote', 'add', 'origin', REMOTE], { quiet: true });
-  else if (/^https:\/\/github\.com\//i.test(url.out)) git(['remote', 'set-url', 'origin', REMOTE], { quiet: true });
+  if (!url.ok) {
+    git(['remote', 'add', 'origin', want], { quiet: true });
+    return;
+  }
+  const m = /^https:\/\/(?:[^@/]+@)?github\.com\/([^/]+\/[^/]+?)(?:\.git)?\/?$/i.exec(url.out);
+  if (!m || url.out === want) return;
+  if (m[1].toLowerCase() !== REPO.toLowerCase()) git(['config', '--local', 'polar.movedFrom', m[1]], { quiet: true });
+  git(['remote', 'set-url', 'origin', want], { quiet: true });
 }
 
 /** Removes the GitHub login Windows saved for another account, so the next upload asks you to sign in again. */
@@ -202,14 +245,39 @@ function forgetLogin(user) {
   spawnSync('git', ['credential-manager', 'github', 'logout', user], { cwd: ROOT, encoding: 'utf8' });
 }
 
+function moveFirst(from) {
+  return `${REPO} isn't on GitHub yet: the repository is still at github.com/${from}. Move it there (its releases move\n` +
+    `too, and GitHub sends old launchers to the new address, so they keep updating):\n` +
+    `  1. Make the free organization ${OWNER}, if you haven't: https://github.com/account/organizations/new?plan=free\n` +
+    `  2. Open https://github.com/${from}/settings , scroll down to "Danger Zone", click "Transfer" and choose ${OWNER}.\n` +
+    'Then run this again. Nothing was uploaded.';
+}
+
+/** Before a release changes anything: when the repository was due to move, checks it has (or says how). */
+async function checkMoved() {
+  const from = localConfig('polar.movedFrom');
+  if (!from) return;
+  try {
+    const res = await fetch(`https://api.github.com/repos/${REPO}`, { headers: { Accept: 'application/vnd.github+json' } });
+    if (res.status === 404) fail(moveFirst(from));
+  } catch {
+    // offline: push() says it if it comes to that
+  }
+}
+
 /** Pushes; when the GitHub repo doesn't exist yet, opens the page to create it and tries again. */
 async function push(refs, replace = false) {
   for (let attempt = 0; attempt < 3; attempt++) {
     say(`\nUploading to ${WEB} ... (the first time, a window asks you to sign in to GitHub)`);
     // replacing re-signed commits: --force-with-lease only overwrites GitHub's copy if nobody else changed it meanwhile
     const r = git(['push', '-u', ...(replace ? ['--force-with-lease'] : []), 'origin', ...refs], { allowFail: true });
-    if (r.ok) return;
+    const movedFrom = localConfig('polar.movedFrom');
+    if (r.ok) {
+      if (movedFrom) git(['config', '--local', '--unset', 'polar.movedFrom'], { quiet: true, allowFail: true });
+      return;
+    }
     if (/not found|does not exist/i.test(r.err)) {
+      if (movedFrom) fail(moveFirst(movedFrom));
       const url = `https://github.com/new?owner=${OWNER}&name=${NAME}&visibility=public&description=${encodeURIComponent('Polar Client: a Minecraft client for 26.3, 1.21.11, 1.21.10, 1.16.5 and 1.8.9, and its launcher')}`;
       say(`\nThe repository ${REPO} doesn't exist on GitHub yet. Opening the page to create it:\n  ${url}`);
       say('Keep it Public, and leave "Add a README", .gitignore and license OFF (the folder already has them).');
@@ -223,17 +291,18 @@ async function push(refs, replace = false) {
         `otherwise run "git pull --rebase origin ${branch()}" first.`);
     }
     const other = /denied to ([\w-]+)/i.exec(r.err);
-    if (other && other[1].toLowerCase() !== OWNER.toLowerCase()) {
-      say(`\nGit used a GitHub login saved on this PC for another account (${other[1]}), not ${OWNER}.`);
-      if (/^y/i.test(await ask(`Forget the saved login for ${other[1]} on this PC, so you can sign in as ${OWNER}? (y/n)`, 'y'))) {
+    if (other && other[1].toLowerCase() !== account.toLowerCase()) {
+      say(`\nGit used a GitHub login saved on this PC for another account (${other[1]}), not ${account}.`);
+      if (/^y/i.test(await ask(`Forget the saved login for ${other[1]} on this PC, so you can sign in as ${account}? (y/n)`, 'y'))) {
         forgetLogin(other[1]);
-        say(`Forgotten. When the sign-in window opens, choose "Sign in with your browser" and allow it as ${OWNER}.`);
+        say(`Forgotten. When the sign-in window opens, choose "Sign in with your browser" and allow it as ${account}.`);
         continue;
       }
       fail(`Nothing uploaded. To fix it yourself: Control Panel > Credential Manager > Windows Credentials, remove the "git:https://github.com" entries, then run this again.`);
     }
     if (/authentication|403|permission/i.test(r.err)) {
-      fail(`GitHub refused the upload. Check that the repository ${REPO} exists and that you signed in as ${OWNER}, then run this again.`);
+      fail(`GitHub refused the upload. Check that the repository ${REPO} exists, that you signed in as ${account} and that\n` +
+        `${account} is an owner of ${OWNER} (https://github.com/orgs/${OWNER}/people), then run this again.`);
     }
     fail('The upload failed (see above).');
   }
@@ -249,7 +318,7 @@ async function publish(message) {
   ensureRepo();
   await ensureIdentity();
   syncWorkflows();
-  ensureRemote();
+  await ensureRemote();
   git(['add', '-A'], { quiet: true });
   checkIgnored();
   const first = !hasCommits();
@@ -296,12 +365,59 @@ function addNews(v, notes) {
   }
 }
 
+/**
+ * Polar Client ships under its own name only. The launcher and the mod (which go into the installers) must not carry
+ * your GitHub login or the name in your Git settings; stops the release, before anything changes, if they do.
+ */
+function checkNames() {
+  const names = new Set();
+  const add = (s) => {
+    const flat = String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    for (const n of [flat, flat.replace(/\d+$/, '')]) if (n.length >= 5 && !n.includes('polar')) names.add(n);
+  };
+  add(account);
+  add(git(['config', '--global', 'user.name'], { quiet: true, allowFail: true }).out);
+  if (!names.size) return;
+  const hits = [];
+  const scan = (file) => {
+    fs.readFileSync(file, 'utf8').split('\n').forEach((line, i) => {
+      const flat = line.toLowerCase().replace(/[^a-z0-9]/g, '');
+      if ([...names].some((n) => flat.includes(n))) hits.push(`  ${path.relative(ROOT, file)} line ${i + 1}: ${line.trim().slice(0, 110)}`);
+    });
+  };
+  const walk = (dir) => {
+    if (!fs.existsSync(dir)) return;
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const p = path.join(dir, e.name);
+      if (e.isDirectory()) {
+        if (!['build', 'dist', 'node_modules', 'run', '.gradle'].includes(e.name)) walk(p);
+      } else if (/\.(js|json|html|css|java|txt|md|properties)$/i.test(e.name) || e.name === 'LICENSE') {
+        scan(p);
+      }
+    }
+  };
+  scan(PKG);
+  walk(path.join(ROOT, 'launcher', 'src'));
+  walk(path.join(ROOT, 'mod'));
+  if (!hits.length) return;
+  const server = hits.some((h) => h.includes('serverUrl'));
+  fail(`Your name is still in what goes into the installers:\n${hits.join('\n')}\n\n` +
+    (server
+      ? "The Polar server's address has your Cloudflare workers.dev name in it. On https://dash.cloudflare.com open\n" +
+        'Workers & Pages and change your workers.dev subdomain to one without your name (for example polarclient), then\n' +
+        'run deploy-server.bat: it puts the new address into the launcher. Then run this again.\n'
+      : 'Change those lines to Polar Client, then run this again.\n') +
+    'Nothing was released.');
+}
+
 async function release(wanted) {
   say('Polar Client > new release\n');
   if (!fs.existsSync(path.join(ROOT, '.git')) || !hasCommits()) fail('Run publish.bat first: it puts the project on GitHub.');
   ensureRepo();
-  ensureRemote();
+  await ensureRemote();
   await ensureIdentity();
+  checkNames();
+  await checkMoved();
   git(['fetch', '-q', '--tags', 'origin'], { quiet: true, allowFail: true });
   const current = JSON.parse(fs.readFileSync(PKG, 'utf8')).version;
   const tags = git(['tag', '-l', 'v*', '--sort=-v:refname'], { quiet: true }).out.split('\n').filter((t) => /^v\d+\.\d+\.\d+$/.test(t));
@@ -329,7 +445,10 @@ async function release(wanted) {
   if (stagedChanges()) git(['commit', '-q', '-m', `Polar Client ${v}`]);
   const replace = await fixAuthors();
   git(['tag', '-a', `v${v}`, '-m', notes], { quiet: true });
+  // if the upload fails, the tag goes again, so running release.bat once more can release the same version
+  undo = () => git(['tag', '-d', `v${v}`], { quiet: true, allowFail: true });
   await push([branch(), `v${v}`], replace);
+  undo = null;
   say(`\nReleased v${v} to GitHub. GitHub Actions is building the mod and the installers now (about 20-30 minutes):`);
   say(`  ${WEB}/actions`);
   say(`When it's done the installers are on ${WEB}/releases and every launcher older than ${v} offers "Update now" at its next start.`);

@@ -54,9 +54,9 @@ The launcher also installs an optional performance pack from Modrinth (Sodium, L
 
 ## GitHub: the code, releases and updates
 
-**Download Polar Client:** <https://github.com/NeerBhardwaj1/polar-client/releases/latest>
+**Download Polar Client:** <https://github.com/PolarClientMC/polar-client/releases/latest>
 
-The launcher reads two things from the public repository `NeerBhardwaj1/polar-client` (set by `polar.updateRepo` and `polar.newsUrl` in `launcher/package.json`): the **latest release**, to offer launcher updates, and **`news.json`**, for the News on the home page. Both need the repository to be public.
+The launcher reads two things from the public repository `PolarClientMC/polar-client` (set by `polar.updateRepo` and `polar.newsUrl` in `launcher/package.json`): the **latest release**, to offer launcher updates, and **`news.json`**, for the News on the home page. Both need the repository to be public.
 
 You need [Git for Windows](https://git-scm.com/download/win) (or `winget install --id Git.Git -e`) and Node.js.
 

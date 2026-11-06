@@ -6,7 +6,7 @@ const $ = (id) => document.getElementById(id);
 const LINKS = [
   { icon: 'i-link', label: 'Website', url: '' },
   { icon: 'i-chat', label: 'Discord', url: '' },
-  { icon: 'i-code', label: 'GitHub', url: 'https://github.com/NeerBhardwaj1' },
+  { icon: 'i-code', label: 'GitHub', url: 'https://github.com/PolarClientMC/polar-client' },
 ];
 
 const BUILT_IN = {

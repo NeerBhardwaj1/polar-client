@@ -1,9 +1,9 @@
 {
   "name": "polar-client-launcher",
   "productName": "Polar Client",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Launcher for Polar Client — the Polar Client mod on Minecraft 26.3, 1.21.11, 1.21.10, 1.16.5 (Fabric) and 1.8.9 (Legacy Fabric), with a performance pack.",
-  "author": "Neer Bhardwaj",
+  "author": "Polar Client",
   "license": "MIT",
   "main": "src/main.js",
   "private": true,
@@ -21,15 +21,15 @@
     "electron-builder": "^26.18.0"
   },
   "polar": {
-    "updateRepo": "NeerBhardwaj1/polar-client",
-    "newsUrl": "https://raw.githubusercontent.com/NeerBhardwaj1/polar-client/main/news.json",
+    "updateRepo": "PolarClientMC/polar-client",
+    "newsUrl": "https://raw.githubusercontent.com/PolarClientMC/polar-client/main/news.json",
     "discordClientId": "",
-    "serverUrl": "https://polar-client.neerbhardwaj-dev.workers.dev"
+    "serverUrl": "https://polar-client.polarclientminecraft.workers.dev"
   },
   "build": {
     "appId": "dev.polarclient.launcher",
     "productName": "Polar Client",
-    "copyright": "Copyright © 2026 Neer Bhardwaj. Not affiliated with Mojang or Microsoft.",
+    "copyright": "Copyright © 2026 Polar Client. Not affiliated with Mojang or Microsoft.",
     "directories": {
       "buildResources": "build",
       "output": "dist"

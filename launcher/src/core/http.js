@@ -7,7 +7,10 @@ const crypto = require('node:crypto');
 const { Readable } = require('node:stream');
 const { pipeline } = require('node:stream/promises');
 
-const USER_AGENT = 'polar-client-launcher/1.0.0 (+https://github.com/NeerBhardwaj1/polar-client)';
+// names the launcher and where it lives, as Modrinth and other APIs ask; both come from package.json
+const PKG = require('../../package.json');
+const HOME = PKG.polar && PKG.polar.updateRepo ? ` (+https://github.com/${PKG.polar.updateRepo})` : '';
+const USER_AGENT = `polar-client-launcher/${PKG.version}${HOME}`;
 
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
