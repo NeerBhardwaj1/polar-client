@@ -1,6 +1,15 @@
 {
   "items": [
     {
+      "id": "release-1.0.6",
+      "date": "2026-11-07",
+      "tag": "Update",
+      "title": "Polar Client 1.0.6",
+      "body": "Motion Blur: a new mod in the Right Shift menu (Visual) that leaves a soft trail on fast turns, with a strength slider. Only the world is blurred, so your HUD stays sharp. Smoother frames: the game now starts with memory settings tuned to cut stutters on 1.21.11, 1.21.10, 1.16.5 and 1.8.9. More FPS: BadOptimizations joins the performance pack on 1.21 and 26.3, and ModernFix and LazyDFU on 1.16.5 for a faster start. ScalableLux and Particle Core are new options on the Mods page. Polar’s HUD mods now do less work every frame.",
+      "link": "https://github.com/PolarClientMC/polar-client/releases/tag/v1.0.6",
+      "linkLabel": "Release notes"
+    },
+    {
       "id": "release-1.0.4",
       "date": "2026-11-03",
       "tag": "Update",

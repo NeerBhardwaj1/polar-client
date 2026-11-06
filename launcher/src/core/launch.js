@@ -57,9 +57,46 @@ function splitAddress(address) {
   return m ? { host: m[1], port: Number(m[2] || 25565) } : null;
 }
 
+/** A JVM flag that picks the garbage collector (-XX:+UseG1GC, -XX:+UseZGC, -XX:+UseShenandoahGC, ...). */
+const PICKS_GC = /^-XX:\+Use\w*GC$/;
+/** Flags that only make sense with a particular collector (G1 / ZGC tuning, pause target). */
+const GC_TUNING = /^-XX:[+-]?(G1|Z[A-Z]|MaxGCPauseMillis|ParallelRefProcEnabled)/;
+
+/**
+ * Polar's JVM flags for smooth frames, for versions whose profile has no "default-user-jvm" of its own (Mojang ships
+ * tuned flags with 26.x; 1.21.x and older get none, so Java falls back to collectors that stutter: Parallel GC on
+ * Java 8, untuned G1 on 21). The aim is short, rare garbage collection pauses instead of frame hitches:
+ * - Java 21+ with 4 GB or more: generational ZGC, pauses well under a millisecond (Mojang's own pick for 26.x), on
+ *   Windows 10 1803 and newer like theirs;
+ * - everything else (Java 8, small heaps, older Windows): G1 tuned like the official launcher's defaults.
+ * Same rule format as version JSONs.
+ */
+function smoothJvmDefaults(javaMajor, memoryGb) {
+  const g1 = [
+    '-XX:+UnlockExperimentalVMOptions',
+    '-XX:+UseG1GC',
+    '-XX:G1NewSizePercent=20',
+    '-XX:G1ReservePercent=20',
+    '-XX:MaxGCPauseMillis=50',
+    '-XX:G1HeapRegionSize=32M',
+    '-XX:+ParallelRefProcEnabled',
+  ];
+  // System.gc() from mods runs alongside the game instead of freezing it; no hsperfdata file writes during pauses
+  const common = ['-XX:+ExplicitGCInvokesConcurrent', '-XX:+PerfDisableSharedMem', '-XX:+UseStringDeduplication'];
+  if (!(javaMajor >= 21) || memoryGb < 4) return [{ value: [...g1, ...common] }];
+  // generational ZGC is opt-in on Java 21 and 22, the default from 23 (where the flag only warns)
+  const zgc = javaMajor <= 22 ? ['-XX:+UseZGC', '-XX:+ZGenerational'] : ['-XX:+UseZGC'];
+  return [
+    { value: common },
+    { rules: [{ action: 'allow', os: { name: 'osx' } }, { action: 'allow', os: { name: 'linux' } }, { action: 'allow', os: { name: 'windows', versionRange: { min: '10.0.17134' } } }], value: zgc },
+    { rules: [{ action: 'allow', os: { name: 'windows', versionRange: { max: '10.0.17134' } } }], value: g1 },
+  ];
+}
+
 /**
  * Returns { java, args, cwd }.
- * opts: { profile, env, java, dirs: { game, assets, libraries, natives, clientJar, loggingConfig },
+ * opts: { profile, env, java, javaMajor (the Java version that runs it, for Polar's JVM defaults),
+ *         dirs: { game, assets, libraries, natives, clientJar, loggingConfig },
  *         libraries: [resolved library {path, native}], account, settings, launcherVersion, clientId,
  *         server?: { host, port } — where --server should point on versions without quick play (SRV already resolved) }
  */
@@ -111,10 +148,15 @@ function buildLaunchCommand(opts) {
   };
 
   const memory = Math.max(1, Math.round(settings.memoryGb || 4));
-  // Mojang's suggested JVM defaults, minus their -Xms/-Xmx (we use the RAM slider instead).
-  const userDefaults = processArgs(profileArgs['default-user-jvm'], { env, features, vars })
-    .filter((a) => !/^-Xm[sx]/.test(a));
   const extra = (settings.jvmArgs || '').split(/\s+/).filter(Boolean);
+  // Mojang's suggested JVM defaults (or Polar's, for versions without any), minus their -Xms/-Xmx (we use the RAM
+  // slider instead). If your own JVM arguments pick a collector, the defaults' collector flags step aside: two
+  // collectors on one command line stop Java from starting.
+  const ownGc = extra.some((a) => PICKS_GC.test(a));
+  const defaults = profileArgs['default-user-jvm'] || smoothJvmDefaults(Number(opts.javaMajor) || 8, memory);
+  const userDefaults = processArgs(defaults, { env, features, vars })
+    .filter((a) => !/^-Xm[sx]/.test(a))
+    .filter((a) => !ownGc || !(PICKS_GC.test(a) || GC_TUNING.test(a)));
   const jvm = [
     `-Xms${Math.min(memory, 2)}G`,
     `-Xmx${memory}G`,
@@ -148,4 +190,4 @@ function redact(args) {
   return out;
 }
 
-module.exports = { substitute, processArgs, buildLaunchCommand, redact, isLegacyProfile, supportsQuickPlay, splitAddress, LEGACY_JVM_ARGS };
+module.exports = { substitute, processArgs, buildLaunchCommand, redact, isLegacyProfile, supportsQuickPlay, splitAddress, smoothJvmDefaults, LEGACY_JVM_ARGS };

@@ -38,6 +38,7 @@ public final class Icons {
 		MODULES.put("compact_chat", Icon.STACKS);
 		MODULES.put("low_fire", Icon.FIRE);
 		MODULES.put("clear_water", Icon.WATER);
+		MODULES.put("motion_blur", Icon.ANIMATION);
 		MODULES.put("time_weather", Icon.WEATHER);
 		MODULES.put("particles", Icon.GRAIN);
 		MODULES.put("hit_color", Icon.COLORIZE);
@@ -168,6 +169,7 @@ public final class Icons {
 		SETTINGS.put("players", Icon.PERSON);
 		SETTINGS.put("join_leave", Icon.GROUPS);
 		SETTINGS.put("lower", Icon.ARROW_DOWN);
+		SETTINGS.put("strength", Icon.ANIMATION);
 		SETTINGS.put("hour", Icon.CLOCK);
 		SETTINGS.put("weather", Icon.RAIN);
 		SETTINGS.put("amount", Icon.GRAIN);

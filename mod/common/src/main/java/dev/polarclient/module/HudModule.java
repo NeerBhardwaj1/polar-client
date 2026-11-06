@@ -49,8 +49,24 @@ public abstract class HudModule extends Module {
 		return true;
 	}
 
+	/** Called as {@link #render} starts and ends, so a module can work out what it shows once per frame. */
+	protected void beginRender(boolean preview) {
+	}
+
+	protected void endRender() {
+	}
+
 	public final void render(Gfx g, int screenW, int screenH, boolean preview) {
 		if (!preview && !hasContent()) return;
+		beginRender(preview);
+		try {
+			place(g, screenW, screenH, preview);
+		} finally {
+			endRender();
+		}
+	}
+
+	private void place(Gfx g, int screenW, int screenH, boolean preview) {
 		float s = scale.getFloat();
 		int w = Math.max(1, (int) Math.ceil(width(preview) * s));
 		int h = Math.max(1, (int) Math.ceil(height(preview) * s));

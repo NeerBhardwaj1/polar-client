@@ -28,8 +28,10 @@
 		"ParticleEngineMixin",
 		"PlayerTabOverlayAccessor",
 		"PlayerTabOverlayMixin",
+		"PostChainAccessor",
 		"ScreenEffectRendererMixin",
 		"ScreenSwapMixin",
+		"ShaderManagerMixin",
 		"WaterFogEnvironmentMixin"
 	],
 	"injectors": {

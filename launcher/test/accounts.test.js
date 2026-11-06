@@ -77,3 +77,22 @@ test('account bridge: secret required, lists accounts, hands out a session', asy
     await bridge.close();
   }
 });
+
+test('settings: performance mods added in an update start on once, and stay off when switched off', async () => {
+  const { OPTIONAL_MODS } = require('../src/core/mods');
+  const store = tempStore();
+  const fresh = store.getSettings();
+  assert.ok(fresh.optionalMods.includes('badoptimizations'), 'new installs get every default mod');
+  assert.deepEqual(fresh.offeredMods, OPTIONAL_MODS.map((m) => m.id));
+
+  // settings saved by 1.0.5: no "offeredMods", and Lithium switched off
+  fs.writeFileSync(store.settingsFile, JSON.stringify({ optionalMods: ['sodium', 'ferrite-core', 'iris'], memoryGb: 4 }));
+  const migrated = store.getSettings();
+  for (const id of ['badoptimizations', 'modernfix', 'lazydfu']) assert.ok(migrated.optionalMods.includes(id), `${id} joins`);
+  assert.ok(!migrated.optionalMods.includes('lithium'), 'mods you switched off before stay off');
+  assert.ok(!migrated.optionalMods.includes('scalablelux') && !migrated.optionalMods.includes('particle-core'), 'off-by-default mods stay off');
+
+  // switched off after the update: not added again
+  await store.setSettings({ optionalMods: migrated.optionalMods.filter((id) => id !== 'badoptimizations') });
+  assert.ok(!store.getSettings().optionalMods.includes('badoptimizations'));
+});

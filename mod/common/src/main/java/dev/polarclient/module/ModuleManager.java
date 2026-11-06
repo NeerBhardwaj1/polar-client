@@ -16,6 +16,7 @@ import dev.polarclient.modules.visual.GlintColorModule;
 import dev.polarclient.modules.visual.HitColorModule;
 import dev.polarclient.modules.visual.HitboxesModule;
 import dev.polarclient.modules.visual.LowFireModule;
+import dev.polarclient.modules.visual.MotionBlurModule;
 import dev.polarclient.modules.visual.ParticlesModule;
 import dev.polarclient.modules.visual.TimeWeatherModule;
 import dev.polarclient.modules.world.CopyCoordsModule;
@@ -109,6 +110,7 @@ public final class ModuleManager {
 	// visuals
 	public final LowFireModule lowFire;
 	public final ClearWaterModule clearWater;
+	public final MotionBlurModule motionBlur;
 	public final TimeWeatherModule timeWeather;
 	public final ParticlesModule particles;
 	public final HitColorModule hitColor;
@@ -166,6 +168,7 @@ public final class ModuleManager {
 		add(new EntityShadowsModule());
 		lowFire = add(new LowFireModule());
 		clearWater = add(new ClearWaterModule());
+		motionBlur = add(new MotionBlurModule());
 		timeWeather = add(new TimeWeatherModule());
 		particles = add(new ParticlesModule());
 		hitColor = add(new HitColorModule());

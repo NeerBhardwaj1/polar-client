@@ -102,6 +102,7 @@ export class Hub {
     if (p === '/v1/auth/verify' && m === 'POST') return this.verify(request);
     if (p === '/v1/auth/offline' && m === 'POST') return this.offlineSignIn(request);
     if (p === '/v1/live') return this.live(request, url);
+    if (p === '/v1/online' && m === 'GET') return this.onlineCount();
     if (p.startsWith('/v1/admin/')) return this.admin(request, url);
     const me = await this.auth(request.headers.get('Authorization'));
     if (p === '/v1/me' && m === 'GET') return json(this.profile(me));
@@ -522,13 +523,27 @@ export class Hub {
     throw new HttpError(404, 'Not found');
   }
 
+  /** How many players are on Polar right now (each counted once, however many games they have open). */
+  onlineNow() {
+    return new Set(this.ctx.getWebSockets().map((ws) => (ws.deserializeAttachment() || {}).uuid).filter(Boolean)).size;
+  }
+
+  /**
+   * For the website ("12 on Polar right now"): only the number, readable from any site, and fine to cache for half a
+   * minute.
+   */
+  onlineCount() {
+    return new Response(JSON.stringify({ online: this.onlineNow() }), {
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'public, max-age=30' },
+    });
+  }
+
   stats() {
     const one = (q) => Object.values(this.sql.exec(q).toArray()[0])[0];
-    const online = new Set(this.ctx.getWebSockets().map((ws) => (ws.deserializeAttachment() || {}).uuid).filter(Boolean));
     return {
       players: one('SELECT COUNT(*) FROM players WHERE first_seen > 0'),
       offline: one('SELECT COUNT(*) FROM offline_keys'),
-      online: online.size,
+      online: this.onlineNow(),
       today: one(`SELECT COUNT(*) FROM players WHERE last_seen > ${Date.now() - 86400000}`),
       grants: one('SELECT COUNT(*) FROM grants'),
       codes: one('SELECT COUNT(*) FROM codes WHERE uses_left > 0'),

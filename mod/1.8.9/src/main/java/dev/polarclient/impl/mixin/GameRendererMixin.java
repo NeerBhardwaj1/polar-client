@@ -1,24 +1,31 @@
 package dev.polarclient.impl.mixin;
 
 import dev.polarclient.Polar;
+import dev.polarclient.impl.MotionBlur;
 import dev.polarclient.modules.FreelookModule;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.GameOptions;
 import net.minecraft.client.render.GameRenderer;
 import net.minecraft.entity.Entity;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Constant;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyConstant;
 import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
  * Zoom (scales the FOV), No Hurt Cam (scales the 14 degree hurt shake), Fullbright (lightmap built as if brightness
- * were far past "Bright") and Freelook (the camera reads Freelook's angles instead of your player's).
+ * were far past "Bright"), Freelook (the camera reads Freelook's angles instead of your player's) and Motion Blur
+ * (drawn over the world, before the HUD).
  */
 @Mixin(GameRenderer.class)
 public abstract class GameRendererMixin {
+	@Shadow private MinecraftClient client;
+
 	@Inject(method = "getFov", at = @At("RETURN"), cancellable = true)
 	private void polar$zoom(float partialTicks, boolean useFovSetting, CallbackInfoReturnable<Float> cir) {
 		if (Polar.modules() == null || !useFovSetting) return;
@@ -62,5 +69,10 @@ public abstract class GameRendererMixin {
 	private float polar$prevPitch(Entity entity) {
 		FreelookModule f = polar$freelook();
 		return f != null ? f.pitch() : entity.prevPitch;
+	}
+
+	@Inject(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gl/Framebuffer;bind(Z)V"))
+	private void polar$motionBlur(float partialTicks, long nanoTime, CallbackInfo ci) {
+		MotionBlur.render(this.client, partialTicks);
 	}
 }

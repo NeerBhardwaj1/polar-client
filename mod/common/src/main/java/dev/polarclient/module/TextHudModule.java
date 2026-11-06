@@ -39,6 +39,27 @@ public abstract class TextHudModule extends HudModule {
 	/** Lines to show. {@code preview} = sample values for the HUD editor when there's no live data. */
 	protected abstract List<String> lines(boolean preview);
 
+	/**
+	 * The lines being drawn right now, during {@link #render}: sizing and drawing need them several times a frame, and
+	 * some (item and entity counts) look through the whole inventory or world to make.
+	 */
+	private List<String> frameLines;
+
+	@Override
+	protected void beginRender(boolean preview) {
+		frameLines = decorated(preview);
+	}
+
+	@Override
+	protected void endRender() {
+		frameLines = null;
+	}
+
+	private List<String> current(boolean preview) {
+		List<String> l = frameLines;
+		return l != null ? l : decorated(preview);
+	}
+
 	private List<String> decorated(boolean preview) {
 		List<String> raw = lines(preview);
 		if (brackets.is("None")) return raw;
@@ -67,20 +88,20 @@ public abstract class TextHudModule extends HudModule {
 	@Override
 	public int width(boolean preview) {
 		int w = 0;
-		for (String l : decorated(preview)) w = Math.max(w, textWidth(l));
+		for (String l : current(preview)) w = Math.max(w, textWidth(l));
 		return background.on() ? Math.max(MIN_BOX_W, w + PAD_X * 2) : w;
 	}
 
 	@Override
 	public int height(boolean preview) {
-		int n = Math.max(1, decorated(preview).size());
+		int n = Math.max(1, current(preview).size());
 		int text = n * Draw.lineHeight() + (n - 1) * LINE_GAP - 1;
 		return background.on() ? text + PAD_Y * 2 : text;
 	}
 
 	@Override
 	protected void draw(Gfx g, boolean preview) {
-		List<String> ls = decorated(preview);
+		List<String> ls = current(preview);
 		int w = width(preview), h = height(preview);
 		if (background.on()) Draw.round(g, 0, 0, w, h, 3, backgroundColor.argb());
 		int y = background.on() ? PAD_Y : 0;

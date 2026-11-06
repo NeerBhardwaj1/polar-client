@@ -109,6 +109,40 @@ test('launch command for macOS adds -XstartOnFirstThread and skips custom size w
   assert.ok(args[args.indexOf('-cp') + 1].includes(':'));
 });
 
+test('JVM defaults: Polar picks smooth GC flags for versions without Mojang\'s own', () => {
+  // a 1.21-style profile: no "default-user-jvm" in its arguments
+  const merged = mergeProfiles(vanilla, fabric);
+  const bare = { ...merged, arguments: { ...merged.arguments, 'default-user-jvm': undefined } };
+  const dirs = { game: 'g', assets: 'a', libraries: 'l', natives: 'n', clientJar: 'c.jar' };
+  const account = { name: 'x', uuid: 'u', mcToken: 't' };
+  const run = (env, javaMajor, settings) => buildLaunchCommand({ profile: bare, env, java: 'java', javaMajor, libraries: resolveLibraries(bare, env), dirs, account, settings }).args;
+
+  const z21 = run(WIN, 21, { memoryGb: 6 });
+  assert.ok(z21.includes('-XX:+UseZGC') && z21.includes('-XX:+ZGenerational'), 'Java 21 with 6 GB: generational ZGC');
+  assert.ok(!z21.includes('-XX:+UseG1GC'));
+  assert.ok(z21.includes('-XX:+PerfDisableSharedMem'));
+  const z25 = run(LINUX, 25, { memoryGb: 4 });
+  assert.ok(z25.includes('-XX:+UseZGC') && !z25.includes('-XX:+ZGenerational'), 'ZGenerational only where it is still needed');
+  const oldWin = run(WIN_OLD, 21, { memoryGb: 6 });
+  assert.ok(oldWin.includes('-XX:+UseG1GC') && !oldWin.includes('-XX:+UseZGC'), 'Windows before 1803: G1, like Mojang');
+  const small = run(WIN, 21, { memoryGb: 3 });
+  assert.ok(small.includes('-XX:+UseG1GC') && !small.includes('-XX:+UseZGC'), 'small heaps: G1');
+  const java8 = run(WIN, 8, { memoryGb: 6 });
+  assert.ok(java8.includes('-XX:+UseG1GC') && java8.includes('-XX:MaxGCPauseMillis=50') && !java8.includes('-XX:+UseZGC'), 'Java 8: tuned G1');
+  assert.ok(run(WIN, undefined, { memoryGb: 6 }).includes('-XX:+UseG1GC'), 'unknown Java: the safe choice');
+
+  // your own collector replaces ours, and two collectors never meet on one command line
+  const own = run(WIN, 21, { memoryGb: 6, jvmArgs: '-XX:+UseShenandoahGC' });
+  assert.ok(own.includes('-XX:+UseShenandoahGC'));
+  assert.ok(!own.some((a) => a === '-XX:+UseZGC' || a === '-XX:+UseG1GC' || a === '-XX:+ZGenerational' || a.startsWith('-XX:G1')));
+  assert.ok(own.includes('-XX:+PerfDisableSharedMem'), 'flags for any collector stay');
+
+  // 26.x keeps Mojang\'s defaults, minus their collector when you pick one
+  const mojang = buildLaunchCommand({ profile: merged, env: WIN, java: 'java', javaMajor: 25, libraries: resolveLibraries(merged, WIN), dirs, account, settings: { memoryGb: 4, jvmArgs: '-XX:+UseG1GC' } }).args;
+  assert.ok(!mojang.includes('-XX:+UseZGC') && mojang.includes('-XX:+UseG1GC') && mojang.includes('-XX:+AlwaysPreTouch'));
+  assert.ok(!mojang.includes('-XX:+PerfDisableSharedMem'), "Polar's flags don't stack onto Mojang's");
+});
+
 test('processArgs handles string and list values', () => {
   const out = processArgs(['--a', '${x}', { rules: [{ action: 'allow', os: { name: 'linux' } }], value: ['--b', '${x}'] }], { env: LINUX, vars: { x: 'y' } });
   assert.deepEqual(out, ['--a', 'y', '--b', 'y']);

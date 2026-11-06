@@ -30,6 +30,7 @@
 		"PlayerListHudAccessor",
 		"PlayerListHudMixin",
 		"ScreenMixin",
+		"ShaderEffectAccessor",
 		"WorldMixin",
 		"WorldRenderMixin"
 	],

@@ -13,6 +13,7 @@
 		"EntityMixin",
 		"EntityRenderDispatcherMixin",
 		"EntityRendererMixin",
+		"GameRendererMixin",
 		"GuiMixin",
 		"JoinMultiplayerScreenAccessor",
 		"LevelMixin",
@@ -28,6 +29,7 @@
 		"PlayerTabOverlayAccessor",
 		"PlayerTabOverlayMixin",
 		"ScreenEffectRendererMixin",
+		"ShaderManagerMixin",
 		"WaterFogEnvironmentMixin"
 	],
 	"injectors": {

@@ -63,7 +63,7 @@ class GameManager {
     if (this.logStream) this.logStream.write(`${line}\n`);
   }
 
-  /** Picks Java for this version: the custom one from Settings if it fits, otherwise Mojang's runtime. */
+  /** Picks Java for this version: the custom one from Settings if it fits, otherwise Mojang's runtime. Returns { java, javaMajor }. */
   async pickJava(settings, vanilla) {
     const want = vanilla.javaVersion || DEFAULT_RUNTIME;
     const need = Number(want.majorVersion) || 8;
@@ -71,14 +71,15 @@ class GameManager {
     if (custom) {
       if (!fs.existsSync(custom)) throw new Error(`Custom Java not found: ${custom}`);
       const have = javaMajor(custom);
-      if (javaFits(have, need)) return custom;
+      if (javaFits(have, need)) return { java: custom, javaMajor: have || need };
       this.log(`[launcher] Your custom Java${have ? ` (Java ${have})` : ''} can't run Minecraft ${vanilla.id}, which needs Java ${need}. Using Mojang's Java ${need} instead.`);
     }
     this.progress('java', 0, `Java ${need}`);
-    return ensureRuntime(this.rootDir, want.component, {
+    const java = await ensureRuntime(this.rootDir, want.component, {
       major: need,
       onProgress: (d, t) => this.progress('java', d / t, `Java ${need} · ${d}/${t} files`),
     });
+    return { java, javaMajor: need };
   }
 
   /** Unpacks the natives jars of pre-1.19 versions (LWJGL 2/3 .dll/.so/.dylib files) into the natives folder. */
@@ -118,7 +119,7 @@ class GameManager {
     this.log(`[launcher] Minecraft ${version.id} with ${version.loaderName} Loader ${loader}`);
     this.progress('versions', 1);
 
-    const java = await this.pickJava(settings, vanilla);
+    const { java, javaMajor: javaVersion } = await this.pickJava(settings, vanilla);
     this.progress('java', 1);
 
     const libraries = resolveLibraries(profile, env);
@@ -165,7 +166,7 @@ class GameManager {
       server = await resolveAddress(quickJoin).then((r) => ({ host: r.host, port: r.port })).catch(() => splitAddress(quickJoin));
     }
 
-    return { version, profile, env, java, libraries, server, dirs: { ...dirs, assets: assetsDir, natives, clientJar, loggingConfig }, mods };
+    return { version, profile, env, java, javaMajor: javaVersion, libraries, server, dirs: { ...dirs, assets: assetsDir, natives, clientJar, loggingConfig }, mods };
   }
 
   /** extraEnv: variables for the game process only (e.g. the account bridge address). */

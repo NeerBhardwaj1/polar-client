@@ -22,6 +22,11 @@
 	"mixins": [
 		"polarclient.mixins.json"
 	],
+	"custom": {
+		"badoptimizations:cache_hooks": {
+			"lightmap": "dev.polarclient.compat.BadOptimizationsHook"
+		}
+	},
 	"depends": {
 		"fabricloader": ">=0.20.1",
 		"minecraft": "1.21.11",

@@ -155,6 +155,22 @@ test('the badge and cosmetics show only for players on Polar right now', async (
   assert.equal((await call('GET', `/v1/live?token=${alice}`)).status, 426);
 });
 
+test('the website can read how many players are on Polar right now, and nothing else', async () => {
+  const mojang = fakeMojang();
+  const { hub, call } = setup();
+  let r = await call('GET', '/v1/online');
+  assert.deepEqual(r.data, { online: 0 });
+  assert.equal(r.res.headers.get('Access-Control-Allow-Origin'), '*');
+  const alice = await signIn(call, mojang, ALICE);
+  const bob = await signIn(call, mojang, BOB);
+  await goOnline(hub, alice);
+  await goOnline(hub, alice); // a second game open counts once
+  await goOnline(hub, bob);
+  r = await call('GET', '/v1/online');
+  assert.deepEqual(r.data, { online: 2 });
+  assert.equal((await call('POST', '/v1/online')).status, 401, 'only reading it is open');
+});
+
 test('admin: password, special cosmetics, codes, blocking', async () => {
   const mojang = fakeMojang();
   const { hub, call } = setup();

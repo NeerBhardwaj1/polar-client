@@ -32,7 +32,29 @@ function defaultSettings() {
     discordStatus: true,
     quickJoin: '',
     optionalMods: OPTIONAL_MODS.filter((m) => m.default).map((m) => m.id),
+    // every optional mod the launcher has shown you, so ones added later can start switched on (once)
+    offeredMods: OPTIONAL_MODS.map((m) => m.id),
   };
+}
+
+/** The optional mods launchers up to 1.0.5 offered, for settings saved before "offeredMods" existed. */
+const OFFERED_UNTIL_1_0_5 = ['sodium', 'lithium', 'ferrite-core', 'entityculling', 'immediatelyfast', 'moreculling', 'dynamic-fps',
+  'c2me-fabric', 'sodium-extra', 'iris', 'xaeros-minimap', 'xaeros-world-map', 'appleskin', 'jade', 'emi', 'replaymod',
+  'simple-voice-chat', 'modmenu'];
+
+/**
+ * Saved settings plus the defaults for anything missing. Optional mods that are on by default and newer than your
+ * saved choice (a performance mod added in an update) join it once; if you switch one off, it stays off.
+ */
+function withDefaults(saved) {
+  const settings = { ...defaultSettings(), ...saved };
+  if (Array.isArray(saved.optionalMods)) {
+    const offered = Array.isArray(saved.offeredMods) ? saved.offeredMods : OFFERED_UNTIL_1_0_5;
+    const fresh = OPTIONAL_MODS.filter((m) => m.default && !offered.includes(m.id)).map((m) => m.id);
+    settings.optionalMods = [...new Set([...saved.optionalMods, ...fresh])];
+  }
+  settings.offeredMods = OPTIONAL_MODS.map((m) => m.id);
+  return settings;
 }
 
 class Store {
@@ -62,7 +84,7 @@ class Store {
   }
 
   getSettings() {
-    return { ...defaultSettings(), ...this.readJson(this.settingsFile, {}) };
+    return withDefaults(this.readJson(this.settingsFile, {}));
   }
 
   async setSettings(patch) {
