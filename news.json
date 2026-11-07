@@ -1,6 +1,15 @@
 {
   "items": [
     {
+      "id": "release-1.0.8",
+      "date": "2026-11-07",
+      "tag": "Update",
+      "title": "Polar Client 1.0.8",
+      "body": "New: XP Bottle Optimizer, which cuts lag when lots of XP bottles are thrown (fewer splash particles, XP orbs in the same block drawn as one, fewer pickup sounds). New: Health Indicator, which shows players’ health after their name tags, from green to red, optionally for mobs too.",
+      "link": "https://github.com/PolarClientMC/polar-client/releases/tag/v1.0.8",
+      "linkLabel": "Release notes"
+    },
+    {
       "id": "release-1.0.7",
       "date": "2026-11-07",
       "tag": "Update",

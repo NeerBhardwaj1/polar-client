@@ -12,6 +12,8 @@
 		"ClientLevelDataMixin",
 		"EntityMixin",
 		"EntityRenderDispatcherMixin",
+		"EntityRendererMixin",
+		"ExperienceOrbMixin",
 		"FogRendererMixin",
 		"GameRendererMixin",
 		"GuiMixin",
@@ -24,6 +26,7 @@
 		"LivingEntityRendererMixin",
 		"MinecraftAccessor",
 		"MinecraftMixin",
+		"MobRendererMixin",
 		"MouseHandlerMixin",
 		"OverlayTextureAccessor",
 		"ParticleEngineMixin",
@@ -32,7 +35,8 @@
 		"PlayerTabOverlayMixin",
 		"PostChainAccessor",
 		"ScreenEffectRendererMixin",
-		"ScreenSwapMixin"
+		"ScreenSwapMixin",
+		"SoundManagerMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

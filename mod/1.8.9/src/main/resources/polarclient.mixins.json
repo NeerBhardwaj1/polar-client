@@ -10,6 +10,8 @@
 		"DefaultResourcePackMixin",
 		"EntityMixin",
 		"EntityRenderDispatcherMixin",
+		"EntityRendererMixin",
+		"ExperienceOrbEntityMixin",
 		"GameOptionsMixin",
 		"GameRendererMixin",
 		"HandledScreenMixin",
@@ -22,6 +24,7 @@
 		"LivingEntityRendererMixin",
 		"MinecraftClientAccessor",
 		"MinecraftClientMixin",
+		"MobEntityRendererMixin",
 		"MultiplayerScreenAccessor",
 		"ParticleManagerMixin",
 		"PlayerEntityMixin",
@@ -31,8 +34,10 @@
 		"PlayerListHudMixin",
 		"ScreenMixin",
 		"ShaderEffectAccessor",
+		"SoundManagerMixin",
 		"WorldMixin",
-		"WorldRenderMixin"
+		"WorldRenderMixin",
+		"WorldRendererMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

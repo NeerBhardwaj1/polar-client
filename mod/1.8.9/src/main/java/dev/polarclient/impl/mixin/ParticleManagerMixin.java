@@ -13,6 +13,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class ParticleManagerMixin {
 	@Inject(method = "addParticle(Lnet/minecraft/client/particle/Particle;)V", at = @At("HEAD"), cancellable = true)
 	private void polar$fewerParticles(Particle particle, CallbackInfo ci) {
-		if (Polar.modules() != null && Polar.modules().particles.isEnabled() && Polar.modules().particles.drop()) ci.cancel();
+		if (Polar.modules() == null) return;
+		if (Polar.modules().xpBottles.dropParticle() || Polar.modules().particles.isEnabled() && Polar.modules().particles.drop()) ci.cancel();
 	}
 }

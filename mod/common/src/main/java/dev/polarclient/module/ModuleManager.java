@@ -25,6 +25,7 @@ import dev.polarclient.modules.world.WaypointsModule;
 import dev.polarclient.modules.AutoGGModule;
 import dev.polarclient.modules.CustomFontModule;
 import dev.polarclient.modules.EntityShadowsModule;
+import dev.polarclient.modules.HealthIndicatorModule;
 import dev.polarclient.modules.HitIndicatorModule;
 import dev.polarclient.modules.HitSoundModule;
 import dev.polarclient.modules.ScreenShakeModule;
@@ -48,6 +49,7 @@ import dev.polarclient.modules.perf.CpuModule;
 import dev.polarclient.modules.perf.FpsLimiterModule;
 import dev.polarclient.modules.perf.FrameTimeModule;
 import dev.polarclient.modules.perf.HideFarEntitiesModule;
+import dev.polarclient.modules.perf.XpBottleOptimizerModule;
 import dev.polarclient.modules.perf.StutterMonitorModule;
 import dev.polarclient.modules.social.DiscordStatusModule;
 import dev.polarclient.modules.social.MentionAlertsModule;
@@ -118,6 +120,8 @@ public final class ModuleManager {
 	public final HitboxesModule hitboxes;
 	public final dev.polarclient.cosmetics.PolarCosmeticsModule cosmetics;
 	public final HideFarEntitiesModule hideFarEntities;
+	public final XpBottleOptimizerModule xpBottles;
+	public final HealthIndicatorModule healthIndicator;
 	// inventory
 	public final ItemDurabilityModule itemDurability;
 	public final ShulkerPreviewModule shulkerPreview;
@@ -177,6 +181,7 @@ public final class ModuleManager {
 		cosmetics = add(new dev.polarclient.cosmetics.PolarCosmeticsModule());
 		// combat
 		add(new HitIndicatorModule());
+		healthIndicator = add(new HealthIndicatorModule());
 		add(new HitSoundModule());
 		add(new AttackCooldownModule());
 		add(new CooldownsModule());
@@ -209,6 +214,7 @@ public final class ModuleManager {
 		add(new CpuModule());
 		add(new StutterMonitorModule());
 		hideFarEntities = add(new HideFarEntitiesModule());
+		xpBottles = add(new XpBottleOptimizerModule());
 		// accessibility
 		add(new ScreenShakeModule());
 		add(new SensitivityProfilesModule());

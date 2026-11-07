@@ -93,6 +93,8 @@ public final class Icons {
 		MODULES.put("discord_status", Icon.GAMEPAD);
 		MODULES.put("hitboxes", Icon.CUBE);
 		MODULES.put("hide_far_entities", Icon.VISIBILITY_OFF);
+		MODULES.put("xp_bottle_optimizer", Icon.POTION);
+		MODULES.put("health_indicator", Icon.HEART_PLUS);
 		MODULES.put("minimap", Icon.MAP);
 		MODULES.put("fps_limiter", Icon.SPEED);
 		MODULES.put("frame_time", Icon.MONITORING);
@@ -170,6 +172,11 @@ public final class Icons {
 		SETTINGS.put("join_leave", Icon.GROUPS);
 		SETTINGS.put("lower", Icon.ARROW_DOWN);
 		SETTINGS.put("strength", Icon.ANIMATION);
+		SETTINGS.put("splash", Icon.GRAIN);
+		SETTINGS.put("merge", Icon.STACKS);
+		SETTINGS.put("sounds", Icon.VOLUME);
+		SETTINGS.put("absorption", Icon.SHIELD);
+		SETTINGS.put("mobs", Icon.PETS);
 		SETTINGS.put("hour", Icon.CLOCK);
 		SETTINGS.put("weather", Icon.RAIN);
 		SETTINGS.put("amount", Icon.GRAIN);

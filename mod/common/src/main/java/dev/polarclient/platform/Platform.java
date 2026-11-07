@@ -214,6 +214,15 @@ public abstract class Platform {
 	/** Entities loaded in the world around you (what F3 counts). */
 	public abstract int entityCount();
 
+	/** Something told about each XP orb in the world: its entity id, where it is and how much XP it holds. */
+	public interface XpOrbVisitor {
+		void orb(int id, double x, double y, double z, int value);
+	}
+
+	/** Calls {@code visitor} for each XP orb in the world (for XP Bottle Optimizer's orb merging). */
+	public void forEachXpOrb(XpOrbVisitor visitor) {
+	}
+
 	/** The item in your main hand, or null if it's empty. */
 	public abstract ItemView heldItem();
 

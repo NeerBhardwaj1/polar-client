@@ -13,9 +13,11 @@
 		"EntityMixin",
 		"EntityRenderDispatcherMixin",
 		"EntityRendererMixin",
+		"ExperienceOrbMixin",
 		"GameRendererMixin",
 		"GuiMixin",
 		"JoinMultiplayerScreenAccessor",
+		"LevelEventHandlerMixin",
 		"LevelMixin",
 		"LevelRendererMixin",
 		"LightmapRenderStateExtractorMixin",
@@ -23,6 +25,7 @@
 		"LivingEntityRendererMixin",
 		"MinecraftAccessor",
 		"MinecraftMixin",
+		"MobRendererMixin",
 		"MouseHandlerMixin",
 		"OverlayTextureAccessor",
 		"ParticleEngineMixin",
@@ -30,6 +33,7 @@
 		"PlayerTabOverlayMixin",
 		"ScreenEffectRendererMixin",
 		"ShaderManagerMixin",
+		"SoundManagerMixin",
 		"WaterFogEnvironmentMixin"
 	],
 	"injectors": {

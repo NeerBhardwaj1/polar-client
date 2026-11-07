@@ -11,12 +11,12 @@ const LINKS = [
 
 const BUILT_IN = {
   HUD: ['Watermark', 'FPS', 'CPS', 'Ping', 'Keystrokes', 'Armor Status', 'Potion Effects', 'Coordinates', 'Direction HUD', 'Biome Display', 'Chunk Coordinates', 'Compass', 'Clock', 'Server Address', 'Speed', 'Session Time', 'Memory', 'Entity Counter', 'Held Item Display', 'Health HUD', 'Saturation HUD', 'Durability Warning', 'Pack Display', 'Scoreboard', 'Boss Bar', 'Tab List', 'HUD Tweaks'],
-  Combat: ['Reach Display', 'Combo Counter', 'Item Counter', 'Totem Counter', 'Low Health Warning', 'Hit Indicator', 'Hit Sound', 'Attack Cooldown', 'Cooldowns', 'Kill Counter', 'Death Counter', 'Auto GG'],
+  Combat: ['Reach Display', 'Combo Counter', 'Item Counter', 'Totem Counter', 'Low Health Warning', 'Hit Indicator', 'Health Indicator', 'Hit Sound', 'Attack Cooldown', 'Cooldowns', 'Kill Counter', 'Death Counter', 'Auto GG'],
   Visual: ['Zoom', 'Freelook', 'Fullbright', 'Custom Crosshair', 'No Hurt Cam', 'Smooth Camera', 'Entity Shadows', 'Low Fire', 'Clear Water', 'Motion Blur', 'Time & Weather', 'Particles', 'Hit Colour', 'Glint Colour', 'Hitboxes'],
   World: ['Minimap', 'Waypoints', 'Coordinates Hotkey', 'Death Waypoints', 'Journey Tracker', 'World Border Display', 'Distance Calculator'],
   Inventory: ['Inventory Search', 'Shulker Preview', 'Exact Durability'],
   Social: ['Chat Timestamps', 'Chat Filter', 'Copy Chat', 'Compact Chat', 'Chat Background', 'Mention Alerts', 'Discord Status'],
-  Performance: ['FPS Limiter', 'Frame Time', 'CPU Monitor', 'Stutter Monitor', 'Hide Far Entities'],
+  Performance: ['FPS Limiter', 'Frame Time', 'CPU Monitor', 'Stutter Monitor', 'Hide Far Entities', 'XP Bottle Optimizer'],
   Accessibility: ['Toggle Sprint', 'Screen Shake Control', 'Sensitivity Profiles'],
   Customization: ['Custom Font', 'Polar Cosmetics'],
 };

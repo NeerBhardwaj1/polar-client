@@ -577,6 +577,16 @@ public final class McPlatform extends Platform {
 	}
 
 	@Override
+	public void forEachXpOrb(XpOrbVisitor visitor) {
+		if (mc().level == null) return;
+		for (net.minecraft.world.entity.Entity e : mc().level.entitiesForRendering()) {
+			if (!(e instanceof net.minecraft.world.entity.ExperienceOrb)) continue;
+			net.minecraft.world.entity.ExperienceOrb orb = (net.minecraft.world.entity.ExperienceOrb) e;
+			visitor.orb(orb.getId(), orb.getX(), orb.getY(), orb.getZ(), orb.getValue());
+		}
+	}
+
+	@Override
 	public ItemView heldItem() {
 		if (player() == null) return null;
 		ItemStack s = player().getMainHandItem();

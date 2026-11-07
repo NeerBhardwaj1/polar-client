@@ -6,6 +6,7 @@ import net.minecraft.client.render.BufferBuilder;
 import net.minecraft.client.render.CameraView;
 import net.minecraft.client.render.entity.EntityRenderDispatcher;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.ExperienceOrbEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -27,7 +28,12 @@ public abstract class EntityRenderDispatcherMixin {
 
 	@Inject(method = "shouldRender", at = @At("HEAD"), cancellable = true)
 	private void polar$hideFar(Entity entity, CameraView camera, double camX, double camY, double camZ, CallbackInfoReturnable<Boolean> cir) {
-		if (Polar.modules() == null || !Polar.modules().hideFarEntities.isEnabled()) return;
+		if (Polar.modules() == null) return;
+		if (entity instanceof ExperienceOrbEntity && Polar.modules().xpBottles.hidesOrb(entity.getEntityId())) {
+			cir.setReturnValue(false);
+			return;
+		}
+		if (!Polar.modules().hideFarEntities.isEnabled()) return;
 		if (entity == MinecraftClient.getInstance().getCameraEntity()) return;
 		if (Polar.modules().hideFarEntities.hides(entity instanceof PlayerEntity, entity.squaredDistanceTo(camX, camY, camZ))) cir.setReturnValue(false);
 	}
