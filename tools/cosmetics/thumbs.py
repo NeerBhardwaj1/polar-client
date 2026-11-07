@@ -22,7 +22,7 @@ ROOT = os.path.dirname(os.path.dirname(HERE))
 OUT = os.path.join(ROOT, 'server', 'public', 'cosmetics')
 SKIN = os.path.join(ROOT, 'launcher', 'src', 'renderer', 'assets', 'mannequin.png')
 # camera per kind: yaw:pitch:zoom, and the height it looks at
-CAMERAS = {'cape': ('200:6:1.55', 0.92), 'wings': ('205:10:0.86', 1.32), 'head': ('28:14:2.3', 1.74), 'back': ('205:8:1.4', 1.0), 'aura': ('200:8:1.0', 1.0)}
+CAMERAS = {'cape': ('200:6:1.55', 0.92), 'wings': ('200:10:0.64', 1.28), 'head': ('28:14:2.3', 1.74), 'back': ('205:8:1.4', 1.0), 'aura': ('200:8:1.0', 1.0)}
 SIZE = (320, 400)
 PER_PAGE = 12  # browsers allow about 16 WebGL canvases per page
 

@@ -36,9 +36,32 @@ final class CosmeticModel {
 	static final class Anim {
 		String bone, type;
 		float[] rot = new float[3], pos = new float[3];
-		float speed = 1, speedMove = Float.NaN, phase, idle = 1, move = 1;
+		float speed = 1, speedMove = Float.NaN, phase, idle = 1, move = 1, down = 0.38f;
+		boolean flap;
 		String key;
 	}
+
+	/**
+	 * How a wing should move beyond its own animation: beat harder or slower, fold in, spread to glide, trail behind
+	 * a turn, and be drawn bigger or smaller. Worked out per player in {@link Cosmetics}; {@link #NONE} for anything
+	 * that isn't wings.
+	 */
+	static final class Motion {
+		static final Motion NONE = new Motion();
+		/** Multiplies how far and how fast the beats go. */
+		float amp = 1, speed = 1;
+		/** 0..1: folded against the back (sneaking, swimming, riding, sleeping). */
+		float fold;
+		/** 0..1: spread wide and still (jumping or falling). */
+		float glide;
+		/** Degrees the wings trail behind a turn of the body. */
+		float lag;
+		/** Drawn size (1 = as made). */
+		float scale = 1;
+	}
+
+	/** Pivot (pixels, body space) the wings grow and shrink around: between the shoulder blades. */
+	private static final float SCALE_X = 0, SCALE_Y = 2.5f, SCALE_Z = 2.3f;
 
 	final boolean head;
 	final int texW, texH, frames, frameTime;
@@ -69,6 +92,8 @@ final class CosmeticModel {
 				an.phase = fnum(a, "phase", 0);
 				an.idle = fnum(a, "idle", 1);
 				an.move = fnum(a, "move", 1);
+				an.down = Math.max(0.05f, Math.min(0.95f, fnum(a, "down", 0.38f)));
+				an.flap = "flap".equals(an.type);
 				an.key = an.bone + ':' + an.type + ':' + an.phase + ':' + anims.size();
 				anims.add(an);
 			}
@@ -107,6 +132,10 @@ final class CosmeticModel {
 	 * standing still .. 1 walking; timeMs: a shared clock for spinning parts; tint: ARGB for the player's colour.
 	 */
 	void emit(Map<String, Float> phases, float dt, float moving, long timeMs, int tint, RenderBatch base, RenderBatch glowBatch) {
+		emit(phases, dt, moving, timeMs, tint, base, glowBatch, Motion.NONE);
+	}
+
+	void emit(Map<String, Float> phases, float dt, float moving, long timeMs, int tint, RenderBatch base, RenderBatch glowBatch, Motion motion) {
 		java.util.HashMap<String, float[]> pose = new java.util.HashMap<>();
 		for (Anim a : anims) {
 			float[] v = pose.get(a.bone);
@@ -117,18 +146,39 @@ final class CosmeticModel {
 				continue;
 			}
 			float speedMove = Float.isNaN(a.speedMove) ? a.speed : a.speedMove;
-			float speed = a.speed + (speedMove - a.speed) * moving;
+			float speed = (a.speed + (speedMove - a.speed) * moving) * motion.speed;
 			Float ph = phases.get(a.key);
 			float phase = ((ph == null ? 0 : ph) + dt * speed) % 1000f;
 			phases.put(a.key, phase);
-			float amp = a.idle + (a.move - a.idle) * moving;
-			float s = (float) Math.sin(2 * Math.PI * phase + a.phase) * amp;
+			float amp = (a.idle + (a.move - a.idle) * moving) * motion.amp;
+			float s = (a.flap ? beat(phase + a.phase / (float) (2 * Math.PI), a.down) : (float) Math.sin(2 * Math.PI * phase + a.phase)) * amp;
 			for (int i = 0; i < 3; i++) {
 				v[i] += a.rot[i] * s;
 				v[3 + i] += a.pos[i] * s;
 			}
 		}
-		for (Bone b : bones) walk(b, Mat4.identity(), pose, tint, base, glowBatch);
+		float[] root = motion.scale == 1 ? Mat4.identity() : Mat4.scaleAbout(motion.scale, SCALE_X / 16f, SCALE_Y / 16f, SCALE_Z / 16f);
+		boolean shaped = motion.fold != 0 || motion.glide != 0 || motion.lag != 0;
+		for (Bone b : bones) {
+			if (shaped) {
+				// fold back and droop, or open up and lift, mirrored for the right wing; trail the turn on both
+				float side = b.pivot[0] >= 0 ? 1 : -1;
+				float[] v = pose.get(b.name);
+				if (v == null) pose.put(b.name, v = new float[6]);
+				v[1] += side * (-38 * motion.fold + 14 * motion.glide) + motion.lag;
+				v[2] += side * (10 * motion.fold - 7 * motion.glide);
+			}
+			walk(b, root, pose, tint, base, glowBatch);
+		}
+	}
+
+	/**
+	 * A real wing beat over one cycle (p in cycles): a quick power stroke from +1 to -1 taking the share `down` of
+	 * the cycle, then a slower recovery back to +1. Smooth at both turns.
+	 */
+	static float beat(float p, float down) {
+		p = p - (float) Math.floor(p);
+		return p < down ? (float) Math.cos(Math.PI * p / down) : (float) -Math.cos(Math.PI * (p - down) / (1 - down));
 	}
 
 	private void walk(Bone b, float[] parent, Map<String, float[]> pose, int tint, RenderBatch base, RenderBatch glowBatch) {

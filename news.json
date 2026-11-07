@@ -1,6 +1,15 @@
 {
   "items": [
     {
+      "id": "release-1.0.9",
+      "date": "2026-11-07",
+      "tag": "Update",
+      "title": "Polar Client 1.0.9",
+      "body": "New: 60 wings (10 rebuilt, 50 new). Wings now flap like real wings and react when you sprint, sneak, jump, glide and fly. New Polar Cosmetics settings: Animate wings, Wing particles, Wing size.",
+      "link": "https://github.com/PolarClientMC/polar-client/releases/tag/v1.0.9",
+      "linkLabel": "Release notes"
+    },
+    {
       "id": "release-1.0.8",
       "date": "2026-11-07",
       "tag": "Update",

@@ -2,6 +2,7 @@ package dev.polarclient.impl;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import dev.polarclient.cosmetics.RenderBatch;
+import dev.polarclient.cosmetics.WingPose;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.SubmitNodeCollector;
@@ -12,7 +13,9 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.FontDescription;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Items;
 
 import java.util.UUID;
 
@@ -30,6 +33,29 @@ public final class CosmeticsRender {
 		if (mc.level == null) return null;
 		Entity e = mc.level.getEntity(entityId);
 		return e instanceof Player ? e.getUUID() : null;
+	}
+
+	/** What the player behind a render state is doing, for their wings (see {@link WingPose}). */
+	public static WingPose pose(int entityId, float moving) {
+		WingPose p = WingPose.walking(moving);
+		Minecraft mc = Minecraft.getInstance();
+		if (mc.level == null) return p;
+		Entity e = mc.level.getEntity(entityId);
+		if (!(e instanceof Player)) return p;
+		Player pl = (Player) e;
+		p.sprinting = pl.isSprinting();
+		p.sneaking = pl.isCrouching();
+		p.onGround = pl.onGround();
+		p.flying = pl.getAbilities().flying;
+		p.gliding = pl.isFallFlying();
+		p.swimming = pl.isSwimming();
+		p.riding = pl.isPassenger();
+		p.sleeping = pl.isSleeping();
+		p.elytra = pl.getItemBySlot(EquipmentSlot.CHEST).is(Items.ELYTRA);
+		p.bodyYaw = pl.yBodyRot;
+		Entity cam = mc.getCameraEntity();
+		p.distanceSq = cam == null || cam == pl ? 0 : cam.distanceToSqr(pl);
+		return p;
 	}
 
 	private static RenderType type(RenderBatch b) {

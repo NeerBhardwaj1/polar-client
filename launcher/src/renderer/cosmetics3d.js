@@ -241,17 +241,44 @@
       }
     }
 
-    function animValue(item, a, dt, moving) {
+    /** A real wing beat (p in cycles): a quick power stroke over the share `down`, then a slower recovery. */
+    function beat(p, down) {
+      p -= Math.floor(p);
+      return p < down ? Math.cos(Math.PI * p / down) : -Math.cos(Math.PI * (p - down) / (1 - down));
+    }
+
+    function animValue(item, a, dt, moving, motion = NO_MOTION) {
       const key = `${item.id}:${a.bone}:${a.type}:${a.phase || 0}`;
       if (a.type === 'spin') return { rot: (a.rot || [0, 0, 0]).map((r) => r * (now() / 1000)) };
-      const speed = (a.speed || 1) + ((a.speedMove ?? a.speed ?? 1) - (a.speed || 1)) * moving;
+      const speed = ((a.speed || 1) + ((a.speedMove ?? a.speed ?? 1) - (a.speed || 1)) * moving) * motion.speed;
       state.phases[key] = ((state.phases[key] || 0) + dt * speed) % 1000;
-      const amp = (a.idle ?? 1) + ((a.move ?? 1) - (a.idle ?? 1)) * moving;
-      const s = Math.sin(2 * Math.PI * state.phases[key] + (a.phase || 0)) * amp;
+      const amp = ((a.idle ?? 1) + ((a.move ?? 1) - (a.idle ?? 1)) * moving) * motion.amp;
+      const down = Math.min(0.95, Math.max(0.05, a.down ?? 0.38));
+      const s = (a.type === 'flap' ? beat(state.phases[key] + (a.phase || 0) / (2 * Math.PI), down)
+        : Math.sin(2 * Math.PI * state.phases[key] + (a.phase || 0))) * amp;
       return { rot: (a.rot || [0, 0, 0]).map((r) => r * s), pos: (a.pos || [0, 0, 0]).map((p) => p * s) };
     }
 
-    function drawModel(item, model, anchorMat, dt, moving) {
+    // Wings react to what the player does, eased like in game (dev.polarclient.cosmetics.Cosmetics#wingMotion).
+    const NO_MOTION = { amp: 1, speed: 1, fold: 0, glide: 0 };
+    const POSES = {
+      idle: { sprint: 0, fold: 0, glide: 0, fly: 0 }, walk: { sprint: 0, fold: 0, glide: 0, fly: 0 },
+      sprint: { sprint: 1, fold: 0, glide: 0, fly: 0 }, sneak: { sprint: 0, fold: 1, glide: 0, fly: 0 },
+      glide: { sprint: 0, fold: 0, glide: 1, fly: 0 }, fly: { sprint: 0, fold: 0, glide: 0, fly: 1 },
+    };
+    function wingMotion(dt) {
+      const target = POSES[state.pose] || POSES.idle;
+      const w = state.wing || (state.wing = { ...target });
+      const k = dt > 0 ? 1 - Math.exp(-dt / 0.18) : 0;
+      for (const key of Object.keys(target)) w[key] += (target[key] - w[key]) * k;
+      return {
+        amp: (1 + 0.3 * w.sprint + 0.45 * w.fly) * (1 - 0.8 * w.fold) * (1 - 0.5 * w.glide),
+        speed: (1 + 0.35 * w.sprint + 0.6 * w.fly) * (1 - 0.35 * w.fold) * (1 - 0.3 * w.glide),
+        fold: w.fold, glide: w.glide * (1 - w.fly),
+      };
+    }
+
+    function drawModel(item, model, anchorMat, dt, moving, motion = NO_MOTION) {
       const tex = texture(base + model.texture);
       const glowTex = model.glow ? texture(base + model.glow) : null;
       if (!tex || !tex.ready) return;
@@ -260,16 +287,23 @@
       const tint = hexColor(item.color || item.defaultColor);
       const anims = {};
       for (const a of model.anims || []) {
-        const v = animValue(item, a, dt, moving);
+        const v = animValue(item, a, dt, moving, motion);
         const cur = anims[a.bone] || { rot: [0, 0, 0], pos: [0, 0, 0] };
         cur.rot = cur.rot.map((r, i) => r + (v.rot ? v.rot[i] : 0));
         cur.pos = cur.pos.map((p, i) => p + (v.pos ? v.pos[i] : 0));
         anims[a.bone] = cur;
       }
-      const walk = (bone, parent) => {
+      const walk = (bone, parent, top) => {
         const an = anims[bone.name] || { rot: [0, 0, 0], pos: [0, 0, 0] };
         const pivot = bone.pivot.map((p, i) => p + an.pos[i]);
-        const rot = bone.rot.map((r, i) => (r + an.rot[i]) * RAD);
+        const extra = [0, 0, 0];
+        if (top && (motion.fold || motion.glide)) {
+          // fold back and droop, or open up and lift, mirrored for the right wing
+          const side = bone.pivot[0] >= 0 ? 1 : -1;
+          extra[1] = side * (-38 * motion.fold + 14 * motion.glide);
+          extra[2] = side * (10 * motion.fold - 7 * motion.glide);
+        }
+        const rot = bone.rot.map((r, i) => (r + an.rot[i] + extra[i]) * RAD);
         const m = M.mul(parent, partMatrix(pivot, rot));
         for (const cube of bone.cubes) {
           const col = cube.tint ? [...tint, 1] : [1, 1, 1, 1];
@@ -284,7 +318,7 @@
         }
         for (const ch of bone.children || []) walk(ch, m);
       };
-      for (const b of model.bones) walk(b, anchorMat);
+      for (const b of model.bones) walk(b, anchorMat, true);
     }
 
     // ---------------------------------------------------------------- aura particles (world space, player at 0,0,0)
@@ -404,11 +438,14 @@
           }
         }
       }
+      const motion = wingMotion(dt);
       for (const [slot, item] of Object.entries(state.loadout)) {
         if (!item || slot === 'cape' || slot === 'aura') continue;
         const model = state.models[item.model];
         if (!model || model === 'loading') continue;
-        drawModel(item, model, model.anchor === 'head' ? mats.head : mats.body, dt, moving);
+        const wings = slot === 'wings';
+        const m = wings && (state.pose === 'fly') ? 1 : moving;
+        drawModel(item, model, model.anchor === 'head' ? mats.head : mats.body, dt, m, wings ? motion : NO_MOTION);
       }
       // camera: orbit around the player
       const camDist = 5.2 / state.zoom;

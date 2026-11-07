@@ -157,16 +157,6 @@ export default {
    "special": true
   },
   {
-   "id": "wings_frost",
-   "name": "Frost Wings",
-   "type": "wings"
-  },
-  {
-   "id": "wings_aurora",
-   "name": "Aurora Wings",
-   "type": "wings"
-  },
-  {
    "id": "wings_angel",
    "name": "Angel Wings",
    "type": "wings"
@@ -177,8 +167,13 @@ export default {
    "type": "wings"
   },
   {
-   "id": "wings_demon",
-   "name": "Demon Wings",
+   "id": "wings_aurora",
+   "name": "Aurora Wings",
+   "type": "wings"
+  },
+  {
+   "id": "wings_frost",
+   "name": "Frost Wings",
    "type": "wings"
   },
   {
@@ -193,6 +188,16 @@ export default {
    "type": "wings"
   },
   {
+   "id": "wings_mech",
+   "name": "Mech Wings",
+   "type": "wings"
+  },
+  {
+   "id": "wings_demon",
+   "name": "Demon Wings",
+   "type": "wings"
+  },
+  {
    "id": "wings_butterfly",
    "name": "Butterfly Wings",
    "type": "wings",
@@ -204,8 +209,259 @@ export default {
    "type": "wings"
   },
   {
-   "id": "wings_mech",
-   "name": "Mech Wings",
+   "id": "wings_seraph_plume",
+   "name": "Seraph Plume",
+   "type": "wings"
+  },
+  {
+   "id": "wings_dawnbreaker",
+   "name": "Dawnbreaker",
+   "type": "wings"
+  },
+  {
+   "id": "wings_raven_shroud",
+   "name": "Raven Shroud",
+   "type": "wings"
+  },
+  {
+   "id": "wings_snowy_owl",
+   "name": "Snowy Owl",
+   "type": "wings"
+  },
+  {
+   "id": "wings_sunhawk",
+   "name": "Sunhawk",
+   "type": "wings"
+  },
+  {
+   "id": "wings_ember_drift",
+   "name": "Ember Drift",
+   "type": "wings"
+  },
+  {
+   "id": "wings_magma_veil",
+   "name": "Magma Veil",
+   "type": "wings"
+  },
+  {
+   "id": "wings_soulfire",
+   "name": "Soulfire",
+   "type": "wings"
+  },
+  {
+   "id": "wings_solar_flare",
+   "name": "Solar Flare",
+   "type": "wings"
+  },
+  {
+   "id": "wings_cinder_crest",
+   "name": "Cinder Crest",
+   "type": "wings"
+  },
+  {
+   "id": "wings_glacier_shard",
+   "name": "Glacier Shard",
+   "type": "wings"
+  },
+  {
+   "id": "wings_blizzard",
+   "name": "Blizzard",
+   "type": "wings"
+  },
+  {
+   "id": "wings_tidecaller",
+   "name": "Tidecaller",
+   "type": "wings"
+  },
+  {
+   "id": "wings_abyssal_fin",
+   "name": "Abyssal Fin",
+   "type": "wings"
+  },
+  {
+   "id": "wings_frostbite",
+   "name": "Frostbite",
+   "type": "wings"
+  },
+  {
+   "id": "wings_nebula_veil",
+   "name": "Nebula Veil",
+   "type": "wings"
+  },
+  {
+   "id": "wings_event_horizon",
+   "name": "Event Horizon",
+   "type": "wings"
+  },
+  {
+   "id": "wings_starforged",
+   "name": "Starforged",
+   "type": "wings"
+  },
+  {
+   "id": "wings_comet_tail",
+   "name": "Comet Tail",
+   "type": "wings"
+  },
+  {
+   "id": "wings_supernova",
+   "name": "Supernova",
+   "type": "wings"
+  },
+  {
+   "id": "wings_voidwalker",
+   "name": "Voidwalker",
+   "type": "wings"
+  },
+  {
+   "id": "wings_bone_reaper",
+   "name": "Bone Reaper",
+   "type": "wings"
+  },
+  {
+   "id": "wings_hellforge",
+   "name": "Hellforge",
+   "type": "wings"
+  },
+  {
+   "id": "wings_tattered_shade",
+   "name": "Tattered Shade",
+   "type": "wings",
+   "tint": true
+  },
+  {
+   "id": "wings_cursed_chains",
+   "name": "Cursed Chains",
+   "type": "wings"
+  },
+  {
+   "id": "wings_thruster_rig",
+   "name": "Thruster Rig",
+   "type": "wings"
+  },
+  {
+   "id": "wings_hardlight",
+   "name": "Hardlight",
+   "type": "wings"
+  },
+  {
+   "id": "wings_circuit_glider",
+   "name": "Circuit Glider",
+   "type": "wings"
+  },
+  {
+   "id": "wings_blade_array",
+   "name": "Blade Array",
+   "type": "wings"
+  },
+  {
+   "id": "wings_glitch",
+   "name": "Glitch",
+   "type": "wings"
+  },
+  {
+   "id": "wings_sunset_monarch",
+   "name": "Sunset Monarch",
+   "type": "wings"
+  },
+  {
+   "id": "wings_petal_drift",
+   "name": "Petal Drift",
+   "type": "wings",
+   "tint": true
+  },
+  {
+   "id": "wings_autumn_leaf",
+   "name": "Autumn Leaf",
+   "type": "wings"
+  },
+  {
+   "id": "wings_dragonfly",
+   "name": "Dragonfly",
+   "type": "wings",
+   "tint": true
+  },
+  {
+   "id": "wings_overgrowth",
+   "name": "Overgrowth",
+   "type": "wings"
+  },
+  {
+   "id": "wings_stormcaller",
+   "name": "Stormcaller",
+   "type": "wings"
+  },
+  {
+   "id": "wings_prism",
+   "name": "Prism",
+   "type": "wings"
+  },
+  {
+   "id": "wings_aether_ribbon",
+   "name": "Aether Ribbon",
+   "type": "wings"
+  },
+  {
+   "id": "wings_plasma_coil",
+   "name": "Plasma Coil",
+   "type": "wings"
+  },
+  {
+   "id": "wings_wisp",
+   "name": "Wisp",
+   "type": "wings"
+  },
+  {
+   "id": "wings_pixel",
+   "name": "Pixel Wings",
+   "type": "wings",
+   "tint": true
+  },
+  {
+   "id": "wings_candy_swirl",
+   "name": "Candy Swirl",
+   "type": "wings"
+  },
+  {
+   "id": "wings_paper_crane",
+   "name": "Paper Crane",
+   "type": "wings",
+   "tint": true
+  },
+  {
+   "id": "wings_bubble",
+   "name": "Bubble",
+   "type": "wings"
+  },
+  {
+   "id": "wings_chibi_bat",
+   "name": "Chibi Bat",
+   "type": "wings",
+   "tint": true
+  },
+  {
+   "id": "wings_archangel",
+   "name": "Archangel",
+   "type": "wings"
+  },
+  {
+   "id": "wings_elder_dragon",
+   "name": "Elder Dragon",
+   "type": "wings"
+  },
+  {
+   "id": "wings_celestial_clockwork",
+   "name": "Celestial Clockwork",
+   "type": "wings"
+  },
+  {
+   "id": "wings_chromatic_seraph",
+   "name": "Chromatic Seraph",
+   "type": "wings"
+  },
+  {
+   "id": "wings_polar_guardian",
+   "name": "Polar Guardian",
    "type": "wings"
   },
   {

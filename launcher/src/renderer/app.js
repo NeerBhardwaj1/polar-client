@@ -1807,7 +1807,7 @@ polar.on('accounts:changed', (accounts) => {
 });
 
 // ---------------------------------------------------------------- Polar: shared sign-in gate
-const RARITY = { common: 'Common', rare: 'Rare', epic: 'Epic', legendary: 'Legendary' };
+const RARITY = { common: 'Common', rare: 'Rare', epic: 'Epic', legendary: 'Legendary', mythic: 'Mythic' };
 const SLOT_NAMES = { cape: 'cape', wings: 'wings', head: 'hat', back: 'back item', aura: 'aura' };
 const TINTS = ['#ffffff', '#1f1f24', '#ff4f5e', '#ff9a2e', '#ffd23f', '#3fbf74', '#2fd3c1', '#4fa3ff', '#2f4fe6', '#9b5cff', '#ff6fb5', '#8a5a35'];
 
@@ -2032,7 +2032,8 @@ document.querySelectorAll('#wrSlots button').forEach((b) => b.addEventListener('
 }));
 document.querySelectorAll('#wrPose button').forEach((b) => b.addEventListener('click', () => {
   document.querySelectorAll('#wrPose button').forEach((x) => x.classList.toggle('active', x === b));
-  if (wr.viewer) wr.viewer.set({ walking: Number(b.dataset.walk) });
+  const pose = b.dataset.pose;
+  if (wr.viewer) wr.viewer.set({ pose, walking: pose === 'walk' || pose === 'sprint' ? 1 : 0 });
 }));
 $('wrBadge').addEventListener('change', (e) => {
   wr.draft.hideBadge = !e.target.checked;

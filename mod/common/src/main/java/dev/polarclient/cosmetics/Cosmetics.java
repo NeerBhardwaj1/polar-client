@@ -69,14 +69,24 @@ public final class Cosmetics {
 		int[][] pixels, glowPixels;
 		Object texture, glowTexture;
 		int uploaded = -1;
+		/** Wings only: particles that drift off the wings (the same rules as auras). */
+		Aura.Settings trail;
+		int trailW, trailH;
+		int[] trailPixels;
+		Object trailTexture;
 	}
 
 	/** Per-player drawing state: animation clocks and aura particles (render thread only). */
 	private static final class Fx {
 		final Map<String, Float> phases = new HashMap<>();
 		final Aura aura = new Aura();
-		String auraId;
-		long head, body, auraAt, seen;
+		final Aura trail = new Aura();
+		final CosmeticModel.Motion motion = new CosmeticModel.Motion();
+		String auraId, trailId;
+		long head, body, auraAt, trailAt, seen;
+		/** The wings' pose, eased towards what the player is doing (0..1 each), and how fast the body turns. */
+		float sprint, fold, glide, fly, yawSpeed, lastYaw;
+		boolean hasYaw;
 	}
 
 	private static volatile boolean signedIn;
@@ -255,6 +265,13 @@ public final class Cosmetics {
 				a.h = a.model.texH;
 				a.pixels = frames(LauncherBridge.polarFile(str(m, "texture"), 30000), a.frames, a.w, a.h);
 				if (a.model.glow) a.glowPixels = frames(LauncherBridge.polarFile(str(m, "glow"), 30000), a.frames, a.w, a.h);
+				if ("wings".equals(it.type) && it.particles != null && it.particles.has("texture")) {
+					a.trail = new Aura.Settings(it.particles);
+					BufferedImage img = image(LauncherBridge.polarFile(str(it.particles, "texture"), 30000));
+					a.trailW = img.getWidth();
+					a.trailH = img.getHeight();
+					a.trailPixels = img.getRGB(0, 0, a.trailW, a.trailH, null, 0, a.trailW);
+				}
 			} else {
 				a.failed = true;
 				return;
@@ -384,15 +401,23 @@ public final class Cosmetics {
 	 * moving: 0 standing .. 1 walking or running.
 	 */
 	public static List<RenderBatch> models(UUID uuid, boolean head, float moving) {
+		return models(uuid, head, WingPose.walking(moving));
+	}
+
+	/** The same, with what the player is doing, so wings can react (sprint, sneak, glide, fly, turn). */
+	public static List<RenderBatch> models(UUID uuid, boolean head, WingPose pose) {
 		try {
-			return models0(uuid, head, moving);
+			return models0(uuid, head, pose == null ? WingPose.walking(0) : pose);
 		} catch (RuntimeException e) {
 			failed(e);
 			return Collections.emptyList();
 		}
 	}
 
-	private static List<RenderBatch> models0(UUID uuid, boolean head, float moving) {
+	/** Beyond this distance (blocks) other players' wings hold still. */
+	private static final double STILL_BEYOND = 32;
+
+	private static List<RenderBatch> models0(UUID uuid, boolean head, WingPose pose) {
 		Look l = look(uuid);
 		if (l == null) return Collections.emptyList();
 		Fx fx = fx(uuid);
@@ -401,20 +426,70 @@ public final class Cosmetics {
 		float dt = last == 0 ? 0 : Math.min(0.1f, (now - last) / 1000f);
 		if (head) fx.head = now;
 		else fx.body = now;
+		float moving = Math.max(0, Math.min(1, pose.moving));
 		List<RenderBatch> out = new ArrayList<>(4);
 		for (String slot : new String[] {"wings", "head", "back"}) {
 			Asset a = asset(l, slot);
 			if (a == null || a.model == null || a.model.head != head) continue;
+			boolean wings = "wings".equals(slot);
+			if (wings && pose.elytra) continue;
 			Object tex = texture(a, slot);
 			if (tex == null) continue;
 			RenderBatch base = new RenderBatch(tex, a.model.translucent ? RenderBatch.TRANSLUCENT : RenderBatch.CUTOUT);
 			RenderBatch glow = a.glowTexture != null ? new RenderBatch(a.glowTexture, RenderBatch.GLOW) : null;
 			Integer c = l.colors.get(slot);
-			a.model.emit(fx.phases, dt, Math.max(0, Math.min(1, moving)), now, c == null ? 0xFFFFFFFF : c, base, glow);
+			CosmeticModel.Motion motion = CosmeticModel.Motion.NONE;
+			float slotDt = dt, slotMoving = moving;
+			if (wings) {
+				motion = wingMotion(fx, pose, dt);
+				if (pose.flying || pose.gliding) slotMoving = 1;
+				if (pose.distanceSq > STILL_BEYOND * STILL_BEYOND) slotDt = 0;
+			}
+			a.model.emit(fx.phases, slotDt, slotMoving, now, c == null ? 0xFFFFFFFF : c, base, glow, motion);
 			out.add(base);
 			if (glow != null && glow.count > 0) out.add(glow);
 		}
 		return out;
+	}
+
+	/** How quickly the wings follow a change of what the player is doing (seconds). */
+	private static final float EASE = 0.18f, TURN_EASE = 0.12f;
+
+	/**
+	 * Works out this frame's wing motion for a player: eases towards the pose that fits what they are doing, so a
+	 * sneak folds the wings in over a fifth of a second instead of snapping.
+	 */
+	private static CosmeticModel.Motion wingMotion(Fx fx, WingPose p, float dt) {
+		PolarCosmeticsModule m = module();
+		float k = dt <= 0 ? 0 : 1 - (float) Math.exp(-dt / EASE);
+		boolean tucked = p.sneaking || p.swimming || p.riding || p.sleeping;
+		boolean flying = p.flying || p.gliding;
+		boolean falling = !p.onGround && !flying && !p.swimming && !p.riding;
+		fx.sprint += ((p.sprinting && !tucked ? 1 : 0) - fx.sprint) * k;
+		fx.fold += ((tucked ? 1 : 0) - fx.fold) * k;
+		fx.glide += ((falling ? 1 : 0) - fx.glide) * k;
+		fx.fly += ((flying ? 1 : 0) - fx.fly) * k;
+		if (fx.hasYaw && dt > 0) {
+			float turn = p.bodyYaw - fx.lastYaw;
+			turn -= 360 * Math.round(turn / 360);
+			float speed = Math.max(-720, Math.min(720, turn / dt));
+			fx.yawSpeed += (speed - fx.yawSpeed) * (1 - (float) Math.exp(-dt / TURN_EASE));
+		}
+		fx.lastYaw = p.bodyYaw;
+		fx.hasYaw = true;
+		CosmeticModel.Motion mo = fx.motion;
+		mo.amp = (1 + 0.3f * fx.sprint + 0.45f * fx.fly) * (1 - 0.8f * fx.fold) * (1 - 0.5f * fx.glide);
+		mo.speed = (1 + 0.35f * fx.sprint + 0.6f * fx.fly) * (1 - 0.35f * fx.fold) * (1 - 0.3f * fx.glide);
+		mo.fold = fx.fold;
+		mo.glide = fx.glide * (1 - fx.fly);
+		// a turn of the body leaves the wings trailing a little behind it
+		mo.lag = Math.max(-14, Math.min(14, -fx.yawSpeed * 0.05f));
+		mo.scale = m == null ? 1 : m.wingScale();
+		if (m != null && !m.animateWings()) {
+			mo.amp = 0;
+			mo.lag = 0;
+		}
+		return mo;
 	}
 
 	/**
@@ -433,7 +508,43 @@ public final class Cosmetics {
 	private static List<RenderBatch> aura0(UUID uuid, double x, double y, double z, float camYaw, float camPitch) {
 		Look l = look(uuid);
 		PolarCosmeticsModule m = module();
-		if (l == null || m == null || !m.showAuras()) return Collections.emptyList();
+		if (l == null || m == null) return Collections.emptyList();
+		List<RenderBatch> trail = trail(l, m, uuid, x, y, z, camYaw, camPitch);
+		List<RenderBatch> aura = m.showAuras() ? auraOnly(l, uuid, x, y, z, camYaw, camPitch) : Collections.<RenderBatch>emptyList();
+		if (trail.isEmpty()) return aura;
+		if (aura.isEmpty()) return trail;
+		List<RenderBatch> both = new ArrayList<>(aura);
+		both.addAll(trail);
+		return both;
+	}
+
+	/** Particles that drift off a player's wings (only wings that have them, and only with Wing particles on). */
+	private static List<RenderBatch> trail(Look l, PolarCosmeticsModule m, UUID uuid, double x, double y, double z, float camYaw, float camPitch) {
+		if (!m.wingParticles()) return Collections.emptyList();
+		Asset a = asset(l, "wings");
+		if (a == null || a.trail == null || a.trailPixels == null) return Collections.emptyList();
+		Platform p = Platform.get();
+		if (p == null) return Collections.emptyList();
+		if (a.trailTexture == null) {
+			a.trailTexture = p.createTexture("cosmetic_trail", a.trailW, a.trailH);
+			p.uploadTexture(a.trailTexture, a.trailPixels);
+		}
+		Fx fx = fx(uuid);
+		String id = l.items.get("wings");
+		if (!id.equals(fx.trailId)) {
+			fx.trailId = id;
+			fx.trailAt = 0;
+		}
+		long now = System.nanoTime();
+		float dt = fx.trailAt == 0 ? 0 : Math.min(0.1f, (now - fx.trailAt) / 1e9f);
+		fx.trailAt = now;
+		fx.trail.step(a.trail, dt, x, y, z);
+		RenderBatch b = new RenderBatch(a.trailTexture, a.trail.glow ? RenderBatch.GLOW : RenderBatch.TRANSLUCENT_BOTH);
+		fx.trail.emit(a.trail, x, y, z, camYaw, camPitch, b);
+		return b.count == 0 ? Collections.<RenderBatch>emptyList() : Collections.singletonList(b);
+	}
+
+	private static List<RenderBatch> auraOnly(Look l, UUID uuid, double x, double y, double z, float camYaw, float camPitch) {
 		Asset a = asset(l, "aura");
 		if (a == null || a.aura == null) return Collections.emptyList();
 		Object tex = texture(a, "aura");

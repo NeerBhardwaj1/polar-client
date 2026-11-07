@@ -3,10 +3,13 @@ package dev.polarclient.impl;
 import com.mojang.blaze3d.platform.GlStateManager;
 import dev.polarclient.cosmetics.Cosmetics;
 import dev.polarclient.cosmetics.RenderBatch;
+import dev.polarclient.cosmetics.WingPose;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.client.render.entity.PlayerEntityRenderer;
 import net.minecraft.client.render.entity.feature.FeatureRenderer;
 import net.minecraft.client.render.entity.model.PlayerEntityModel;
+import net.minecraft.entity.Entity;
 
 import java.util.List;
 
@@ -21,11 +24,21 @@ public final class PolarCosmeticsFeature implements FeatureRenderer<AbstractClie
 	@Override
 	public void render(AbstractClientPlayerEntity player, float limbAngle, float limbDistance, float tickDelta, float age, float headYaw, float headPitch, float scale) {
 		if (player.isInvisible()) return;
-		float moving = Math.min(1f, limbDistance);
+		WingPose pose = WingPose.walking(Math.min(1f, limbDistance));
+		pose.sprinting = player.isSprinting();
+		pose.sneaking = player.isSneaking();
+		pose.onGround = player.onGround;
+		pose.flying = player.abilities.flying;
+		pose.swimming = player.isTouchingWater() && !player.onGround;
+		pose.riding = player.hasVehicle();
+		pose.sleeping = player.isSleeping();
+		pose.bodyYaw = player.bodyYaw;
+		Entity cam = MinecraftClient.getInstance().getCameraEntity();
+		pose.distanceSq = cam == null || cam == player ? 0 : cam.squaredDistanceTo(player);
 		int light = player.getLightmapCoordinates(tickDelta);
 		for (int i = 0; i < 2; i++) {
 			boolean head = i == 1;
-			List<RenderBatch> batches = Cosmetics.models(player.getUuid(), head, moving);
+			List<RenderBatch> batches = Cosmetics.models(player.getUuid(), head, pose);
 			if (batches.isEmpty()) continue;
 			GlStateManager.pushMatrix();
 			PlayerEntityModel model = renderer.getModel();

@@ -33,7 +33,7 @@ COLLECTIONS = [
     {'id': 'classic', 'name': 'Classic'},
     {'id': 'special', 'name': 'Special'},
 ]
-RARITY = ['common', 'rare', 'epic', 'legendary']
+RARITY = ['common', 'rare', 'epic', 'legendary', 'mythic']
 FIELDS = ('id', 'name', 'description', 'collection', 'rarity')
 
 

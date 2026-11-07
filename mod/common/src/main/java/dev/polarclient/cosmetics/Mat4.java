@@ -19,6 +19,11 @@ final class Mat4 {
 		return o;
 	}
 
+	/** Grows or shrinks by s around the point (x, y, z). */
+	static float[] scaleAbout(float s, float x, float y, float z) {
+		return new float[] {s, 0, 0, 0, 0, s, 0, 0, 0, 0, s, 0, x - s * x, y - s * y, z - s * z, 1};
+	}
+
 	static float[] translate(float x, float y, float z) {
 		return new float[] {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, x, y, z, 1};
 	}

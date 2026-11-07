@@ -172,6 +172,9 @@ public final class Icons {
 		SETTINGS.put("join_leave", Icon.GROUPS);
 		SETTINGS.put("lower", Icon.ARROW_DOWN);
 		SETTINGS.put("strength", Icon.ANIMATION);
+		SETTINGS.put("animate_wings", Icon.ANIMATION);
+		SETTINGS.put("wing_particles", Icon.GRAIN);
+		SETTINGS.put("wing_size", Icon.OPEN_FULL);
 		SETTINGS.put("splash", Icon.GRAIN);
 		SETTINGS.put("merge", Icon.STACKS);
 		SETTINGS.put("sounds", Icon.VOLUME);

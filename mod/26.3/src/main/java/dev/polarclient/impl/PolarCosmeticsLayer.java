@@ -3,6 +3,7 @@ package dev.polarclient.impl;
 import com.mojang.blaze3d.vertex.PoseStack;
 import dev.polarclient.cosmetics.Cosmetics;
 import dev.polarclient.cosmetics.RenderBatch;
+import dev.polarclient.cosmetics.WingPose;
 import net.minecraft.client.model.player.PlayerModel;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.entity.RenderLayerParent;
@@ -23,10 +24,10 @@ public final class PolarCosmeticsLayer extends RenderLayer<AvatarRenderState, Pl
 		if (state.isInvisible) return;
 		UUID id = CosmeticsRender.uuid(state.id);
 		if (id == null) return;
-		float moving = Math.min(1f, state.walkAnimationSpeed);
+		WingPose pose = CosmeticsRender.pose(state.id, Math.min(1f, state.walkAnimationSpeed));
 		for (int i = 0; i < 2; i++) {
 			boolean head = i == 1;
-			List<RenderBatch> batches = Cosmetics.models(id, head, moving);
+			List<RenderBatch> batches = Cosmetics.models(id, head, pose);
 			if (batches.isEmpty()) continue;
 			poseStack.pushPose();
 			PlayerModel model = this.getParentModel();
